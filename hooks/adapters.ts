@@ -204,6 +204,47 @@ const SEARCHED = ['obsidian', 'notion', 'scuba']
 
 export const canSearch = (source: string): boolean => SEARCHED.includes(source)
 
+/**
+ * True when none of these sources could be asked: each is not set up, not
+ * connected, or failed on its last try. A source that answered with nothing
+ * does not count: that is "nothing found", not "nothing set up".
+ */
+export const noneAnswered = (sources: string[]): boolean =>
+  sources.every(source => lastAnswer.get(source)?.state === 'unavailable')
+
+/**
+ * Whether a source can be reached now, without searching it: a server found
+ * by its marker tool, or a vault folder set. For the guided first loop.
+ */
+export async function reachOf(
+  $: EngineInterface,
+  config: Config,
+  source: string,
+): Promise<string> {
+  if (source === 'obsidian') {
+    return config.obsidianVault
+      ? 'vault folder set'
+      : 'no vault folder set (plugin setting: Obsidian vault folder)'
+  }
+  try {
+    await serverOf($, config, source)
+
+    return 'connected'
+  } catch {
+    return 'not connected (connect it in Claude, then start a new session)'
+  }
+}
+
+/** Said in the menu and on send when no source could be asked. */
+export const SETUP_HINT = {
+  menu: 'no source is set up',
+  lines: [
+    'Works without one: a link or quoted words, such as https://a.link⌘"a question"',
+    'To search: set the Obsidian vault folder in the plugin settings, or connect Notion or Scuba. /1loop sources shows each.',
+  ],
+  send: 'no source answered: none is set up or connected; a link or quoted words work without one',
+}
+
 function ask(
   $: EngineInterface,
   config: Config,

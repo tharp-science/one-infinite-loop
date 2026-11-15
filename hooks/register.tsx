@@ -9,7 +9,7 @@ import type {
   RenderChildren,
 } from 'claude-code'
 
-import { canSearch, lastAnswer, search, within } from './adapters'
+import { SETUP_HINT, canSearch, lastAnswer, noneAnswered, reachOf, search, within } from './adapters'
 import type { Config } from './adapters'
 import { LOOP, SOURCES, glyphsOf, parse, sidesOf } from './parse'
 import { contextBlock, offered, resolveAll, resolvedSides } from './resolve'
@@ -125,6 +125,9 @@ const USAGE = [
   'Pick a row from the list. /1loop lists what resolved in this session.',
 ]
 
+/** `icw` typed as a word of its own, just before the cursor. */
+const ICW_AT_END = /(^|\s)icw$/
+
 /** The loop being typed: the word that ends at the cursor, split at its ⌘. */
 const spotAt = (text: string, cursor: number) => {
   const before = text.slice(0, cursor)
@@ -150,6 +153,18 @@ function refreshMenu(
 ): void {
   const seq = ++menu.seq
   const spot = spotAt(text, cursor)
+  // icw, the operator spelled out, offers the character: on the desktop there
+  // is no typeahead to do it, and a key that types ⌘ may not be set up yet.
+  if (!spot && ICW_AT_END.test(text.slice(0, cursor))) {
+    menu.isOpen = true
+    menu.head = 'icw'
+    menu.note = ''
+    menu.help = []
+    menu.rows = [{ label: LOOP, hint: 'in correspondence with', write: LOOP }]
+    $.ui.invalidate('ui.render')
+
+    return
+  }
   if (!spot) {
     if (menu.isOpen) {
       menu.isOpen = false
@@ -302,12 +317,15 @@ async function searchMenu(
   }))
   const seen = new Set<string>()
   menu.isOpen = true
-  menu.help = []
   menu.head = ask.head
   menu.rows = [...known, ...rows, ...ask.sourceRows].filter(
     row => !seen.has(row.write) && seen.add(row.write),
   )
-  menu.note = rows.length + known.length > 0 ? '' : 'nothing found'
+  const isBare = rows.length + known.length === 0
+  const isUnset = isBare && noneAnswered(ask.sources)
+  menu.note = !isBare ? '' : isUnset ? SETUP_HINT.menu : 'nothing found'
+  // Shown as lines, so the terminal's band carries them too.
+  menu.help = isUnset ? SETUP_HINT.lines : []
   $.ui.invalidate('ui.render')
 }
 
@@ -319,7 +337,12 @@ async function pickRow(
 ): Promise<void> {
   const box = await $.prompt.read()
   const spot = spotAt(box.text, box.cursor)
-  const start = spot ? spot.start : box.text.length
+  const isIcw = !spot && ICW_AT_END.test(box.text.slice(0, box.cursor))
+  const start = spot
+    ? spot.start
+    : isIcw
+      ? box.cursor - 'icw'.length
+      : box.text.length
   const text = box.text.slice(0, start) + row.write + box.text.slice(box.cursor)
   const cursor = start + row.write.length
   if (row.fragment) {
@@ -694,8 +717,31 @@ export const register: Register = (on, options) => {
       const isTyped = e.origin.kind === 'composer' && !e.command && !e.isMeta
       const loops = isTyped ? parse(e.text) : []
       if (isTyped && e.text.trim() === LOOP) {
+        const isNew = (await heldHandles($)).length === 0
+        const reach = await Promise.all(
+          SOURCES.map(async source => {
+            const isOn =
+              source === 'web'
+                ? words(options.enabledSources).includes('web')
+                : config.order.includes(source)
+            const state = !isOn
+              ? 'off'
+              : !canSearch(source)
+                ? 'on (a pasted URL is the address)'
+                : await reachOf($, config, source)
+
+            return `${source}: ${state}`
+          }),
+        )
         block = [
-          `[one-infinite-loop] The message is ${LOOP} on its own, with nothing on either side. That asks for instructions: explain briefly how the loop is used here.`,
+          `[one-infinite-loop] The message is ${LOOP} on its own, with nothing on either side.`,
+          isNew
+            ? 'The person has not picked a fragment before: start the guided first loop ("First loop" in the loop-correspondence skill), one step at a time.'
+            : 'The person has picked fragments before: explain briefly how the loop is used, and offer the guided first loop.',
+          'Sources as the mod sees them now:',
+          ...reach,
+          `Right-Command key: ${$.plugin.root}/extras/right-command/install.sh installs a small helper so that a tap on the right Command key types ${LOOP} (macOS; no password; afterwards the person allows Input Monitoring and Accessibility in System Settings). Run it with bash only after the person says yes. Without it, typing icw offers ${LOOP}.`,
+          'How the loop is used:',
           ...USAGE,
         ].join('\n')
       }

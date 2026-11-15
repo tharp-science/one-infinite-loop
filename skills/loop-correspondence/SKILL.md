@@ -3,7 +3,7 @@ name: loop-correspondence
 description: Interpret and use ⌘ or i/c/w to put ideas, evidence, questions and perspectives in correspondence. Use when someone writes a loop between two things or in front of one, or when making a specific relationship visible would help people or agents continue the work. Works with or without the One Infinite Loop mod.
 ---
 
-Version 1.4.0. Bundled with the One Infinite Loop mod; it does not need the mod to work.
+Version 1.5.0. Bundled with the One Infinite Loop mod; it does not need the mod to work.
 
 ## Read the loop
 
@@ -22,9 +22,21 @@ Read `i/c/w` as the plain-text spelling and `⌘` as the portable character; the
 | `"a question or remark"⌘B` | Double quotes are the person's own words, new in this message: a question or claim set against B. Do not go looking for them as a document. |
 | `[a loose description]⌘B` | Square brackets refer to something that exists; find it. |
 | `https://…⌘B` | A link or a file path is already an address; read it. |
-| `⌘` alone | A request for instructions: explain briefly how the loop is used. |
+| `⌘` alone | A request to be shown how: for someone new, the guided first loop below; for someone who has used it, a brief explanation and the offer of the guided loop. |
 
 A side written like `notion:some-title` or `scuba:beginning…end` is a handle: a source and a shortened title. If you cannot open it, say so and work from what the person can paste.
+
+## First loop
+
+When someone sends `⌘` alone and is new to it, walk them through one loop of their own. Go one step at a time and wait for them between steps. Keep each message short. Use their material, never an example of yours, so that the first loop is already useful.
+
+1. **What it is.** Two sentences: `A⌘B` sets two things side by side so that each can show something about the other, and the person decides what goes on either side; you read them together.
+2. **The key.** If the mod's block names a Right-Command key installer, ask whether they want a tap on the right Command key to type `⌘`. On a yes, run the installer with bash, then tell them macOS will ask for Input Monitoring and Accessibility for "One Infinite Loop Key" in System Settings > Privacy & Security, that only they can turn those on, and to tap right Command on its own to check. On a no, or where there is no installer, say that typing `icw` offers `⌘`. Without the mod, skip this step.
+3. **A loop with nothing set up.** Ask for one thing they are working on that has a link, and one question about it in their own words. Have them send it as `https://…⌘"their question"`. Read it as under "Follow an existing loop", briefly.
+4. **A loop through a source.** Read the sources line in the mod's block. Where one is connected, have them type `⌘` and the source's name and a colon (`⌘notion:`) and a word from a title they know, pick the row from the menu above the prompt, type `⌘` again, and set it against a line of their own in quotes or a second pick. Read it. Where none is connected, say what each needs: Notion and Scuba are connected as connectors in Claude, then a new session; an Obsidian vault is the plugin setting "Obsidian vault folder". Do not run the setup for them.
+5. **What next.** One line: picks are remembered and come back when they type `⌘`; `/1loop` lists what resolved in this session; `⌘` on its own brings this back.
+
+Without the mod (other Claude apps, other assistants) do steps 1, 3 and a version of 4 in which they paste a passage instead of picking it.
 
 ## Follow an existing loop
 
