@@ -1,6 +1,6 @@
 # Changelog
 
-Versions published to the GitHub marketplace and to the THARP organization library. 0.4.1, 0.5.1 and 0.6.0 were steps inside pull requests and were never released on their own; what they added is listed under the release that carried it.
+Versions published to the GitHub marketplace and to the THARP organization library. 0.4.1 and 0.6.0 were steps inside pull requests and were never released on their own; what they added is listed under the release that carried it.
 
 ## 0.7.0, 15 November 2026
 
