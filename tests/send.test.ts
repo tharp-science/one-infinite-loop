@@ -157,9 +157,15 @@ test('three on one string reach Claude as one chain', async ($, on) => {
   expect(block).toContain('https://c.example/z | resolved (address)')
 })
 
+const onMac = (on: Parameters<typeof world>[0], isMac: boolean) =>
+  on('fs.exists', (_: unknown, e: { path: string }) => ({
+    value: isMac && e.path === '/System/Library/CoreServices/SystemVersion.plist',
+  }))
+
 test('the loop alone starts the guided first loop, with the sources and the key installer', async ($, on) => {
   mock.store(on)
   const seen = world(on)
+  onMac(on, true)
   await send($, '⌘')
   const block = seen.sent[0]?.context?.[0] ?? ''
   expect(block).toContain('start the guided first loop')
@@ -350,4 +356,49 @@ test('on the desktop, typing icw offers the loop character, and a click puts it 
   await ui.press({ key: 'loop-0' })
   expect(fills.at(-1)).toBe('see ⌘')
   await ui.unmount()
+})
+
+test('off macOS, the loop alone names no key installer and says icw instead', async ($, on) => {
+  mock.store(on)
+  const seen = world(on)
+  onMac(on, false)
+  await send($, '⌘')
+  const block = seen.sent[0]?.context?.[0] ?? ''
+  expect(block).not.toContain('install.sh')
+  expect(block).toContain('no key installer for this system')
+  expect(block).toContain('icw')
+  expect(block).toContain('PowerToys')
+  expect(block).toContain('No loop shortcut is set')
+})
+
+const typed = async ($: { prompt: unknown }, on: Parameters<typeof world>[0], before: string, char: string) => {
+  on('prompt.read', () => ({ value: { text: before + char, cursor: before.length + 1 } }))
+  on('prompt.edit', (_: unknown, e: { text: string; start: number; end: number; inputText: string }) => ({
+    text: e.text.slice(0, e.start) + e.inputText + e.text.slice(e.end),
+    cursor: e.start + e.inputText.length,
+  }))
+
+  return ($.prompt as { edit: (e: object) => Promise<{ text: string; cursor: number }> }).edit({
+    origin: { kind: 'composer' },
+    text: before,
+    cursor: before.length,
+    start: before.length,
+    end: before.length,
+    inputText: char,
+  })
+}
+
+test('a loop shortcut of your own becomes the loop character as you type it', { options: { loopShortcut: ';;' } }, async ($, on) => {
+  mock.store(on)
+  stranger(on)
+  const box = await typed($, on, 'see ;', ';')
+  expect(box.text).toBe('see ⌘')
+  expect(box.cursor).toBe(5)
+})
+
+test('a loop shortcut made only of letters or digits is ignored, so no word is ever replaced', { options: { loopShortcut: 'and' } }, async ($, on) => {
+  mock.store(on)
+  stranger(on)
+  const box = await typed($, on, 'this an', 'd')
+  expect(box.text).toBe('this and')
 })

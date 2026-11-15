@@ -1,6 +1,6 @@
 {
   "name": "one-infinite-loop",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Makes ⌘ (i/c/w, in correspondence with) a working operator in the prompt: a live menu to pick fragments, addresses attached on send, loops drawn as links.",
   "author": {
     "name": "Thyke Applied Research & Participatory Prototyping (THARP)"
@@ -79,6 +79,12 @@
       "title": "Shimmer (seconds)",
       "description": "How long ⌘ glides through the rainbow in a new message before resting. 0 switches it off.",
       "default": 15
+    },
+    "loopShortcut": {
+      "type": "string",
+      "title": "Loop shortcut",
+      "description": "Characters that turn into ⌘ as you type them, such as ;; (2 to 8, no spaces, not only letters or digits). Empty: off. Typing icw and picking ⌘ always works.",
+      "default": ""
     },
     "debug": {
       "type": "boolean",
