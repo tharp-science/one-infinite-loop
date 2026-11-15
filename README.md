@@ -108,6 +108,12 @@ LOOP_VAULT_ROOT=/path/to/your/vault node extras/vault-redirect/server.mjs
 
 Then set **Obsidian link base** to `http://localhost:27124/vault/`. The `.plist` beside the script keeps it running after login on macOS.
 
+## Working on the mod
+
+`claude plugin validate .` and `claude plugin test .` check and test it; run them with the same Claude Code build that will load the mod. `CHANGELOG.md` lists what each version changed.
+
+For type-checking in an editor: `tsconfig.json` extends `.claude-plugin/types/tsconfig.json`, which Claude Code writes, with the mod API's types, the first time it loads the mod from a folder (for example `claude --plugin-dir .`). The folder is not committed. Until it exists, an editor reports the types as missing; validate and test do not need it.
+
 ## Changing the sources
 
 The skill and the mod meet in one place only: the `[one-infinite-loop]` block the mod attaches. So each can change on its own.
