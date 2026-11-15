@@ -429,3 +429,61 @@ test('from a phone, the key installer is not offered, and iOS text replacement i
   expect(block).toContain('Remote Control')
   expect(block).toContain('Text Replacement')
 })
+
+// Sosumi: the Mac's own copy is played when every loop resolves; never shipped.
+const SOSUMI = '/System/Library/Sounds/Sosumi.aiff'
+const settle = async () => {
+  for (let n = 0; n < 50; n += 1) await Promise.resolve()
+}
+const withSosumi = (on: Parameters<typeof world>[0], isThere: boolean) => {
+  const played: { base64?: string; mime?: string }[] = []
+  on('fs.exists', (_: unknown, e: { path: string }) => ({
+    value: isThere && e.path === SOSUMI,
+  }))
+  on('fs.read', (_: unknown, e: { path: string }) => ({
+    value: e.path === SOSUMI ? { base64: 'Rk9STQ==' } : '',
+  }))
+  on('audio.play', (_: unknown, e: { clip: { base64?: string; mime?: string } }) => {
+    played.push(e.clip)
+
+    return { value: undefined }
+  })
+
+  return played
+}
+
+test('a message whose loops all resolve plays the Mac\'s own Sosumi', async ($, on) => {
+  mock.store(on)
+  world(on)
+  const played = withSosumi(on, true)
+  await send($, 'https://a.link⌘"a question"')
+  await settle()
+  expect(played).toEqual([{ base64: 'Rk9STQ==', mime: 'audio/aiff' }])
+})
+
+test('a loop with a side left unresolved plays nothing', async ($, on) => {
+  mock.store(on)
+  world(on)
+  const played = withSosumi(on, true)
+  await send($, 'notion:zzzz-nowhere⌘"a question"')
+  await settle()
+  expect(played).toEqual([])
+})
+
+test('without the Mac\'s sound file (Windows, Linux) a resolved loop plays nothing', async ($, on) => {
+  mock.store(on)
+  world(on)
+  const played = withSosumi(on, false)
+  await send($, 'https://a.link⌘"a question"')
+  await settle()
+  expect(played).toEqual([])
+})
+
+test('a message with no loop plays nothing', async ($, on) => {
+  mock.store(on)
+  world(on)
+  const played = withSosumi(on, true)
+  await send($, 'press ⌘K to search')
+  await settle()
+  expect(played).toEqual([])
+})

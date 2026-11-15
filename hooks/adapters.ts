@@ -17,6 +17,8 @@ export type Config = {
   shimmerSeconds: number
   /** Typed characters that turn into ⌘; '' when off or not usable. */
   loopShortcut: string
+  /** 'sosumi' plays the Mac's own alert sound when every loop in a message resolves; 'off' plays nothing. */
+  loopSound: 'sosumi' | 'off'
 }
 
 export type SourceState = 'ok' | 'empty' | 'unavailable' | 'not asked'

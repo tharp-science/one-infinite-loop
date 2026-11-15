@@ -2,6 +2,12 @@
 
 Versions published to the GitHub marketplace and to the THARP organization library. 0.4.1 and 0.6.0 were steps inside pull requests and were never released on their own; what they added is listed under the release that carried it.
 
+## 0.8.0, 15 November 2026
+
+Good artists copy, great artists sumi.
+
+- **Loop sound** setting, on by default: when every loop in a message you send resolves, the Mac plays its own Sosumi alert. The sound is read from macOS where it is installed (`/System/Library/Sounds/Sosumi.aiff`) and is not shipped with the mod: Apple's licence does not allow passing it on. Elsewhere, and with the setting `off`, nothing plays.
+
 ## 0.7.1, 15 November 2026
 
 - Set the minimum to Claude Code 2.1.325, the version verified with a clean marketplace install and the plugin test suite. Claude Code 2.1.290 rejected the marketplace install option and the prompt autocomplete hook.

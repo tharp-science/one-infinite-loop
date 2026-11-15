@@ -13,6 +13,7 @@ import { SETUP_HINT, canSearch, lastAnswer, noneAnswered, reachOf, search, withi
 import type { Config } from './adapters'
 import { LOOP, SOURCES, glyphsOf, parse, sidesOf } from './parse'
 import { contextBlock, offered, resolveAll, resolvedSides } from './resolve'
+import { allResolved, chime } from './chime'
 import type { Resolved } from './resolve'
 import {
   findHandle,
@@ -47,6 +48,7 @@ const configOf = (options: PluginOptions): Config => {
     linkStyle: String(options.linkStyle ?? 'inline'),
     shimmerSeconds: Number(options.shimmerSeconds ?? 15),
     loopShortcut: shortcutOf(options.loopShortcut),
+    loopSound: options.loopSound === 'off' ? 'off' : 'sosumi',
   }
 }
 
@@ -792,6 +794,8 @@ export const register: Register = (on, options) => {
           ...resolved.filter(({ loop }) => loop.form !== 'undelimited'),
         )
         block = contextBlock(resolved) || undefined
+        // Not awaited: the send never waits on the sound.
+        if (config.loopSound === 'sosumi' && allResolved(resolved)) void chime($)
         if (config.isDebug) $.ui.log(`one-infinite-loop: ${loops.length} loop(s) attached`)
       }
     } catch (error) {
