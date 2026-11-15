@@ -67,17 +67,36 @@ One more thing, only on your yes. When you send ⌘ on its own, Claude offers to
 
 ## Settings
 
-Source order, enabled sources, Notion and Scuba server names, Obsidian vault folder, Obsidian link base, send budget (3 s), menu rows (20), candidates on send (5), link style (`inline` redraws your message outside the terminal; `below` leaves it alone and lists links under it), shimmer length (15 s; 0 is off), debug.
+Source order, enabled sources, Notion and Scuba server names, Obsidian vault folder, Obsidian link base, send budget (3 s), menu rows (20), candidates on send (5), link style (`inline` redraws your message outside the terminal; `below` leaves it alone and lists links under it), shimmer length (15 s; 0 is off), loop shortcut (off; see [Other ways to type ⌘](#other-ways-to-type-)), debug.
 
 ## A key that types ⌘
 
-`extras/right-command/` makes a tap on the right Command key type ⌘ on macOS. Held down for a shortcut it is still Command; only a tap of under half a second on its own types the character. It is a small helper of its own, `RightCommandKey.swift`, run at login; it watches for that tap, keeps nothing and makes no network request.
+`extras/right-command/` makes a tap on the right Command key type ⌘ on macOS. Windows and Linux have no key helper; see [Other ways to type ⌘](#other-ways-to-type-) below. Held down for a shortcut it is still Command; only a tap of under half a second on its own types the character. It is a small helper of its own, `RightCommandKey.swift`, run at login; it watches for that tap, keeps nothing and makes no network request.
 
 ```bash
 bash extras/right-command/install.sh
 ```
 
 The installer builds the helper from the source beside it where a Swift compiler is installed, and otherwise uses the prebuilt universal binary in `prebuilt/`. The checksum shows that binary is the one committed here; it does not prove it was built from the source beside it. If that matters to you, install Apple's Command Line Tools (`xcode-select --install`) first and the installer builds from source instead. It needs no password. macOS then asks for **Input Monitoring** and **Accessibility** for "One Infinite Loop Key" in System Settings > Privacy & Security; only you can turn those on. `bash extras/right-command/install.sh --uninstall` removes it. When you send ⌘ on its own, Claude offers to run the installer for you.
+
+## Other ways to type ⌘
+
+Any system, nothing to install:
+
+- **icw.** Type `icw` as a word and pick ⌘ from the menu above the prompt (desktop app) or the typeahead (terminal).
+- **A loop shortcut of your own.** In the plugin's settings, set **Loop shortcut** to a few characters you never type otherwise, such as `;;`. Typing them in the prompt turns them into ⌘ at once. It must be 2 to 8 characters with no spaces, and not only letters or digits, so that no ordinary word is ever replaced; anything else is ignored.
+
+**Windows: a key combination that types ⌘.** Microsoft PowerToys can do this, with no script of ours:
+
+1. Install [PowerToys](https://learn.microsoft.com/en-us/windows/powertoys/) and open its Settings.
+2. Turn on **Keyboard Manager**, then choose **Remap a shortcut** and add a remapping.
+3. Under **Select**, press the combination you want, such as Ctrl+Alt+Shift+L. It must start with Ctrl, Alt, Shift or the Windows key and end with an ordinary key. Pick one nothing else uses; on keyboards with AltGr, Ctrl+Alt combinations can clash with characters you already type.
+4. Under **To send**, choose **Text** and enter `⌘` (copy it from this page).
+5. Leave the target app empty for everywhere, or enter the Claude app's process name to keep it there.
+
+PowerToys has to be running for the combination to work. The mod has not yet been tried on Windows; if something there does not work, please open an issue.
+
+**iPhone and iPad.** The mod runs where the Claude Code session runs, on your computer or in the cloud, and the phone shows it, for instance through Remote Control. To type ⌘ on the phone, use iOS's own text replacement: Settings > General > Keyboard > Text Replacement, add one with ⌘ as the phrase and `icw` as the shortcut. It then works in every app. A Loop shortcut set in the plugin's settings works from the phone too, since the session turns it into ⌘. From the phone, Claude does not offer to install the right-Command key: its permission prompts would appear on the computer. The menu above the prompt has not yet been tried on a phone.
 
 ## Clickable Obsidian notes
 

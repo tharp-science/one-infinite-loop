@@ -15,6 +15,8 @@ export type Config = {
   isDebug: boolean
   linkStyle: string
   shimmerSeconds: number
+  /** Typed characters that turn into ⌘; '' when off or not usable. */
+  loopShortcut: string
 }
 
 export type SourceState = 'ok' | 'empty' | 'unavailable' | 'not asked'

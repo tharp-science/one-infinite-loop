@@ -46,7 +46,20 @@ const configOf = (options: PluginOptions): Config => {
     isDebug: options.debug === true,
     linkStyle: String(options.linkStyle ?? 'inline'),
     shimmerSeconds: Number(options.shimmerSeconds ?? 15),
+    loopShortcut: shortcutOf(options.loopShortcut),
   }
+}
+
+/**
+ * A loop shortcut is used only when it cannot be part of an ordinary word:
+ * 2 to 8 characters, no spaces, not only letters or digits.
+ */
+const shortcutOf = (value: unknown): string => {
+  const s = String(value ?? '').trim()
+
+  return s.length >= 2 && s.length <= 8 && !/\s/.test(s) && !/^[\p{L}\p{N}]+$/u.test(s) && s !== LOOP
+    ? s
+    : ''
 }
 
 /** The loops resolved since the module loaded, for `/1loop`. */
@@ -124,6 +137,9 @@ const USAGE = [
   `${LOOP}https://…  a web page or a file path is already an address`,
   'Pick a row from the list. /1loop lists what resolved in this session.',
 ]
+
+/** A file every macOS has: the key helper is offered only where it exists. */
+const MACOS_MARKER = '/System/Library/CoreServices/SystemVersion.plist'
 
 /** `icw` typed as a word of its own, just before the cursor. */
 const ICW_AT_END = /(^|\s)icw$/
@@ -541,9 +557,23 @@ export const register: Register = (on, options) => {
   on('prompt.edit', async ($, e, next) => {
     let box = await next(e)
     editing.asked += 1
+    // A loop shortcut of the person's own becomes the character at once.
+    const cut = config.loopShortcut
+    const isShortcut =
+      cut !== '' &&
+      e.inputText !== '' &&
+      box.text.slice(0, box.cursor).endsWith(cut)
+    if (isShortcut) {
+      const at = box.cursor - cut.length
+      box = {
+        ...box,
+        text: box.text.slice(0, at) + LOOP + box.text.slice(box.cursor),
+        cursor: at + LOOP.length,
+      }
+    }
     // Stringing is the default: a loop typed after a picked fragment joins
     // the two, so ⌘a ⌘ becomes a⌘ and the next pick makes a⌘b.
-    if (e.inputText === LOOP) {
+    if (e.inputText === LOOP || isShortcut) {
       const before = box.text.slice(0, box.cursor)
       const earlier = /(^|\s)(\S+)\s+⌘$/.exec(before)
       const word = earlier?.[2] ?? ''
@@ -714,7 +744,9 @@ export const register: Register = (on, options) => {
       $.ui.invalidate('ui.render')
     }
     try {
-      const isTyped = e.origin.kind === 'composer' && !e.command && !e.isMeta
+      // The person's own message: typed here, sent by the desktop host, or
+      // through Remote Control from a phone or the web.
+      const isTyped = PERSON.has(e.origin.kind) && !e.command && !e.isMeta
       const loops = isTyped ? parse(e.text) : []
       if (isTyped && e.text.trim() === LOOP) {
         const isNew = (await heldHandles($)).length === 0
@@ -740,7 +772,16 @@ export const register: Register = (on, options) => {
             : 'The person has picked fragments before: explain briefly how the loop is used, and offer the guided first loop.',
           'Sources as the mod sees them now:',
           ...reach,
-          `Right-Command key: ${$.plugin.root}/extras/right-command/install.sh installs a small helper so that a tap on the right Command key types ${LOOP} (macOS; no password; afterwards the person allows Input Monitoring and Accessibility in System Settings). Run it with bash only after the person says yes. Without it, typing icw offers ${LOOP}.`,
+          // The key helper is macOS only, and is offered only to someone at
+          // the Mac: from a phone, its permission prompts would go unseen.
+          e.origin.kind === 'bridge'
+            ? `Right-Command key: not offered, because this message came through Remote Control (a phone or the web) and the installer's permission prompts would appear on the computer. Ways to type ${LOOP} from here: on iPhone or iPad, Settings > General > Keyboard > Text Replacement, phrase ${LOOP}, shortcut icw (it then works in every app); a Loop shortcut set in the plugin's settings also works here. Do not install anything for this.`
+            : (await $.fs.exists(MACOS_MARKER).catch(() => false))
+            ? `Right-Command key: ${$.plugin.root}/extras/right-command/install.sh installs a small helper so that a tap on the right Command key types ${LOOP} (macOS; no password; afterwards the person allows Input Monitoring and Accessibility in System Settings). Run it with bash only after the person says yes. Without it, typing icw offers ${LOOP}.`
+            : `Right-Command key: no key installer for this system (the helper is macOS only). Ways to type ${LOOP} here: type icw and pick ${LOOP} from the menu; set a Loop shortcut such as ;; in the plugin's settings; on Windows, make a key combination type ${LOOP} with Microsoft PowerToys Keyboard Manager (README, "A key that types ${LOOP}"). Do not install anything for this.`,
+          config.loopShortcut
+            ? `The person's loop shortcut: typing ${config.loopShortcut} turns into ${LOOP}.`
+            : 'No loop shortcut is set.',
           'How the loop is used:',
           ...USAGE,
         ].join('\n')
