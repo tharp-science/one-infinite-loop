@@ -157,12 +157,27 @@ test('three on one string reach Claude as one chain', async ($, on) => {
   expect(block).toContain('https://c.example/z | resolved (address)')
 })
 
-test('the loop alone asks for instructions', async ($, on) => {
+test('the loop alone starts the guided first loop, with the sources and the key installer', async ($, on) => {
   mock.store(on)
   const seen = world(on)
   await send($, '⌘')
-  expect(seen.sent[0]?.context?.[0] ?? '').toContain('asks for instructions')
+  const block = seen.sent[0]?.context?.[0] ?? ''
+  expect(block).toContain('start the guided first loop')
+  expect(block).toContain('notion: connected')
+  expect(block).toContain('scuba: connected')
+  expect(block).toContain('obsidian: no vault folder set')
+  expect(block).toMatch(/extras\/right-command\/install\.sh/)
+  // Nothing is searched to say so.
   expect(seen.calls).toEqual([])
+})
+
+test('for a stranger, the loop alone says which sources are not connected', async ($, on) => {
+  mock.store(on)
+  const { seen } = stranger(on)
+  await send($, '⌘')
+  const block = seen.sent[0]?.context?.[0] ?? ''
+  expect(block).toContain('notion: not connected')
+  expect(block).toContain('web: on')
 })
 
 test('with every source down, the prompt still goes through', async ($, on) => {
@@ -317,4 +332,22 @@ test('with no source set up, a search on send tells Claude why it is missing', a
   const block = seen.sent[0]?.context?.[0] ?? ''
   expect(block).toContain('"kestrel" -> missing (no source answered')
   expect(block).toContain('a link or quoted words')
+})
+
+test('on the desktop, typing icw offers the loop character, and a click puts it in', async ($, on) => {
+  mock.store(on)
+  const { clock } = stranger(on)
+  const fills: string[] = []
+  on('prompt.fill', (_: unknown, e: { text: string; cursor?: number }) => {
+    fills.push(e.text)
+
+    return { isFilled: true, text: e.text, cursor: e.cursor ?? e.text.length }
+  })
+  await typeLoop($, on, 'see icw')
+  await clock.advance(10)
+  const ui = await $.ui.mount(ABOVE)
+  expect(await ui.find({ type: 'Button', text: /in correspondence with/ })).toBeDefined()
+  await ui.press({ key: 'loop-0' })
+  expect(fills.at(-1)).toBe('see ⌘')
+  await ui.unmount()
 })

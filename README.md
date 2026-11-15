@@ -26,7 +26,7 @@ In the desktop app, where `/plugin` does not run: click + next to the prompt box
 
 ## Using it
 
-Type ⌘ in the prompt (or `icw`, which the terminal's typeahead offers to replace).
+Type ⌘ in the prompt, or type `icw` and pick ⌘ from the menu (the terminal's typeahead, the desktop app's menu above the prompt). To start, send ⌘ on its own.
 
 | You type | What happens |
 | --- | --- |
@@ -36,7 +36,7 @@ Type ⌘ in the prompt (or `icw`, which the terminal's typeahead offers to repla
 | pick a row | A handle such as `⌘scuba:river-papers` is written into your draft and remembered. |
 | ⌘ again after a pick | The two are strung together: `scuba:river-papers⌘`, ready for the next pick. One row keeps them separate if you prefer. |
 | `"a new question"⌘…` or `https://a.link⌘…` | Your own words, or a link, set against a fragment. Words in double quotes are passed on as written; `[square brackets]` are looked up. |
-| `⌘` sent on its own | Claude answers with instructions. |
+| `⌘` sent on its own | Claude walks you through a first loop of your own: the right-Command key, a loop with nothing set up, a loop through a source. If you have used it before, a short reminder. |
 | `⌘word` with no source set up | The menu says no source is set up, and shows what works without one: a link or your own words in quotes. |
 
 When you send, each side is resolved to an address and attached as context only Claude reads. Your typed text is never changed. In the transcript each ⌘ is coloured and each resolved side is a link.
@@ -66,6 +66,16 @@ Read this before installing. While you type a word that contains ⌘, the mod se
 ## Settings
 
 Source order, enabled sources, Notion and Scuba server names, Obsidian vault folder, Obsidian link base, send budget (3 s), menu rows (20), candidates on send (5), link style (`inline` redraws your message outside the terminal; `below` leaves it alone and lists links under it), shimmer length (15 s; 0 is off), debug.
+
+## A key that types ⌘
+
+`extras/right-command/` makes a tap on the right Command key type ⌘ on macOS. Held down for a shortcut it is still Command; only a tap of under half a second on its own types the character. It is a small helper of its own, `RightCommandKey.swift`, run at login; it watches for that tap, keeps nothing and makes no network request.
+
+```bash
+bash extras/right-command/install.sh
+```
+
+The installer builds the helper from the source beside it where a Swift compiler is installed, and otherwise uses the prebuilt universal binary in `prebuilt/`, checked against its recorded checksum. It needs no password. macOS then asks for **Input Monitoring** and **Accessibility** for "One Infinite Loop Key" in System Settings > Privacy & Security; only you can turn those on. `bash extras/right-command/install.sh --uninstall` removes it. When you send ⌘ on its own, Claude offers to run the installer for you.
 
 ## Clickable Obsidian notes
 

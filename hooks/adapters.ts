@@ -212,6 +212,29 @@ export const canSearch = (source: string): boolean => SEARCHED.includes(source)
 export const noneAnswered = (sources: string[]): boolean =>
   sources.every(source => lastAnswer.get(source)?.state === 'unavailable')
 
+/**
+ * Whether a source can be reached now, without searching it: a server found
+ * by its marker tool, or a vault folder set. For the guided first loop.
+ */
+export async function reachOf(
+  $: EngineInterface,
+  config: Config,
+  source: string,
+): Promise<string> {
+  if (source === 'obsidian') {
+    return config.obsidianVault
+      ? 'vault folder set'
+      : 'no vault folder set (plugin setting: Obsidian vault folder)'
+  }
+  try {
+    await serverOf($, config, source)
+
+    return 'connected'
+  } catch {
+    return 'not connected (connect it in Claude, then start a new session)'
+  }
+}
+
 /** Said in the menu and on send when no source could be asked. */
 export const SETUP_HINT = {
   menu: 'no source is set up',
