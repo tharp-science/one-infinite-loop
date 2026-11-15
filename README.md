@@ -8,7 +8,7 @@ It ships with three sample sources, Notion, Scuba and an Obsidian vault, and is 
 
 ## Install
 
-**First, update Claude Code.** The mod needs 2.1.290 or later. The desktop app updates itself. In a terminal, run `claude update`, then `claude --version` to check. An older build refuses the mod with an error about the manifest, not about its version.
+**First, update Claude Code.** The mod requires Claude Code 2.1.325 or later. The desktop app updates itself. In a terminal, run `claude update`, then `claude --version` to check. Older builds may reject the install command or fail to load the mod’s hooks.
 
 At the prompt of a terminal session:
 
