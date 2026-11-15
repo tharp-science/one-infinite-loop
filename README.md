@@ -67,7 +67,7 @@ One more thing, only on your yes. When you send ⌘ on its own, Claude offers to
 
 ## Settings
 
-Source order, enabled sources, Notion and Scuba server names, Obsidian vault folder, Obsidian link base, send budget (3 s), menu rows (20), candidates on send (5), link style (`inline` redraws your message outside the terminal; `below` leaves it alone and lists links under it), shimmer length (15 s; 0 is off), loop shortcut (off; see [Other ways to type ⌘](#other-ways-to-type-)), debug.
+Source order, enabled sources, Notion and Scuba server names, Obsidian vault folder, Obsidian link base, send budget (3 s), menu rows (20), candidates on send (5), link style (`inline` redraws your message outside the terminal; `below` leaves it alone and lists links under it), shimmer length (15 s; 0 is off), loop shortcut (off; see [Other ways to type ⌘](#other-ways-to-type-)), loop sound (`sosumi`: on a Mac, the system's own Sosumi plays when every loop in a sent message resolves; the sound is read from macOS, not shipped; `off`), debug.
 
 ## A key that types ⌘
 
@@ -144,7 +144,7 @@ The skill names no source. It reads whatever the sides are: an address from the 
 
 ## The name
 
-The looped square is one line with no end, and it has sat on a certain keyboard for forty years. The name is a nod to that, nothing more: this project is not affiliated with or endorsed by Apple.
+The looped square is one line with no end, and it has sat on a certain keyboard for forty years. The name is a nod to that, nothing more: this project is not affiliated with or endorsed by Apple. The loop sound is the same kind of nod: Sosumi, named "so sue me" by an Apple engineer in 1991. The mod plays the copy your Mac already has and never ships it.
 
 ## Licence
 
