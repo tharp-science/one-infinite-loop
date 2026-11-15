@@ -49,6 +49,8 @@ In the desktop app the picker is a menu above the prompt, chosen by click. In th
 
 Read this before installing. While you type a word that contains ⌘, the mod sends that word to your sources **before you pick anything or press Enter**: to all of them for a bare `⌘word`, to one for `⌘source:word`. On send it searches again for any side you typed but did not pick. It sends queries only to the sources below, makes no model calls, makes no other web requests, and writes to no source. Handles you pick are kept on your machine in the mod's own store.
 
+One more thing, only on your yes. When you send ⌘ on its own, Claude offers to install the right-Command key (see [A key that types ⌘](#a-key-that-types-)): a small helper, run at login, that watches the keyboard for a tap of the right Command key and types ⌘. Claude runs its installer only if you agree, and macOS still asks you for Input Monitoring and Accessibility before it can do anything. Without that yes nothing is installed, and the mod itself never runs a program.
+
 ## Sample sources
 
 | Key | Source | Reached through | Kind of search |
@@ -75,7 +77,7 @@ Source order, enabled sources, Notion and Scuba server names, Obsidian vault fol
 bash extras/right-command/install.sh
 ```
 
-The installer builds the helper from the source beside it where a Swift compiler is installed, and otherwise uses the prebuilt universal binary in `prebuilt/`, checked against its recorded checksum. It needs no password. macOS then asks for **Input Monitoring** and **Accessibility** for "One Infinite Loop Key" in System Settings > Privacy & Security; only you can turn those on. `bash extras/right-command/install.sh --uninstall` removes it. When you send ⌘ on its own, Claude offers to run the installer for you.
+The installer builds the helper from the source beside it where a Swift compiler is installed, and otherwise uses the prebuilt universal binary in `prebuilt/`. The checksum shows that binary is the one committed here; it does not prove it was built from the source beside it. If that matters to you, install Apple's Command Line Tools (`xcode-select --install`) first and the installer builds from source instead. It needs no password. macOS then asks for **Input Monitoring** and **Accessibility** for "One Infinite Loop Key" in System Settings > Privacy & Security; only you can turn those on. `bash extras/right-command/install.sh --uninstall` removes it. When you send ⌘ on its own, Claude offers to run the installer for you.
 
 ## Clickable Obsidian notes
 

@@ -37,18 +37,22 @@ fi
 # recorded checksum. Nothing is downloaded either way.
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
-if xcode-select -p >/dev/null 2>&1 && xcrun --find swiftc >/dev/null 2>&1; then
-  xcrun swiftc -O -target arm64-apple-macos12 "$HERE/RightCommandKey.swift" -o "$WORK/arm64"
-  xcrun swiftc -O -target x86_64-apple-macos12 "$HERE/RightCommandKey.swift" -o "$WORK/x86_64"
-  lipo -create "$WORK/arm64" "$WORK/x86_64" -output "$WORK/OneInfiniteLoopKey"
+build() {
+  xcode-select -p >/dev/null 2>&1 && xcrun --find swiftc >/dev/null 2>&1 || return 1
+  xcrun swiftc -O -target arm64-apple-macos12 "$HERE/RightCommandKey.swift" -o "$WORK/arm64" 2>/dev/null &&
+    xcrun swiftc -O -target x86_64-apple-macos12 "$HERE/RightCommandKey.swift" -o "$WORK/x86_64" 2>/dev/null &&
+    lipo -create "$WORK/arm64" "$WORK/x86_64" -output "$WORK/OneInfiniteLoopKey"
+}
+if build; then
   BUILT="built from RightCommandKey.swift"
 else
   expected="$(cut -d' ' -f1 "$HERE/prebuilt/OneInfiniteLoopKey.sha256")"
   actual="$(shasum -a 256 "$HERE/prebuilt/OneInfiniteLoopKey" | cut -d' ' -f1)"
   [ "$expected" = "$actual" ] || { echo "The prebuilt binary does not match its checksum. Not installing."; exit 1; }
   cp "$HERE/prebuilt/OneInfiniteLoopKey" "$WORK/OneInfiniteLoopKey"
-  BUILT="the prebuilt binary (no Swift compiler found; checksum matched)"
+  BUILT="the prebuilt binary (no working Swift compiler here; checksum matched)"
 fi
+chmod +x "$WORK/OneInfiniteLoopKey"
 "$WORK/OneInfiniteLoopKey" --self-test >/dev/null || { echo "The tap rule failed its self-test. Not installing."; exit 1; }
 
 stop
