@@ -96,6 +96,8 @@ Any system, nothing to install:
 
 PowerToys has to be running for the combination to work. The mod has not yet been tried on Windows; if something there does not work, please open an issue.
 
+**iPhone and iPad.** The mod runs where the Claude Code session runs, on your computer or in the cloud, and the phone shows it, for instance through Remote Control. To type ⌘ on the phone, use iOS's own text replacement: Settings > General > Keyboard > Text Replacement, add one with ⌘ as the phrase and `icw` as the shortcut. It then works in every app. A Loop shortcut set in the plugin's settings works from the phone too, since the session turns it into ⌘. From the phone, Claude does not offer to install the right-Command key: its permission prompts would appear on the computer. The menu above the prompt has not yet been tried on a phone.
+
 ## Clickable Obsidian notes
 
 A note has a path and no web address, and the desktop app only opens web links. `extras/vault-redirect/server.mjs` is a small local service that turns `http://localhost:27124/vault/<path>` into opening that note in Obsidian. It listens on your machine only, reads and writes nothing, and refuses any path outside the vault.

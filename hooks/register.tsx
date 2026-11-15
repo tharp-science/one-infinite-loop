@@ -744,7 +744,9 @@ export const register: Register = (on, options) => {
       $.ui.invalidate('ui.render')
     }
     try {
-      const isTyped = e.origin.kind === 'composer' && !e.command && !e.isMeta
+      // The person's own message: typed here, sent by the desktop host, or
+      // through Remote Control from a phone or the web.
+      const isTyped = PERSON.has(e.origin.kind) && !e.command && !e.isMeta
       const loops = isTyped ? parse(e.text) : []
       if (isTyped && e.text.trim() === LOOP) {
         const isNew = (await heldHandles($)).length === 0
@@ -770,8 +772,11 @@ export const register: Register = (on, options) => {
             : 'The person has picked fragments before: explain briefly how the loop is used, and offer the guided first loop.',
           'Sources as the mod sees them now:',
           ...reach,
-          // The key helper is macOS only; elsewhere, icw is the way to ⌘.
-          (await $.fs.exists(MACOS_MARKER).catch(() => false))
+          // The key helper is macOS only, and is offered only to someone at
+          // the Mac: from a phone, its permission prompts would go unseen.
+          e.origin.kind === 'bridge'
+            ? `Right-Command key: not offered, because this message came through Remote Control (a phone or the web) and the installer's permission prompts would appear on the computer. Ways to type ${LOOP} from here: on iPhone or iPad, Settings > General > Keyboard > Text Replacement, phrase ${LOOP}, shortcut icw (it then works in every app); a Loop shortcut set in the plugin's settings also works here. Do not install anything for this.`
+            : (await $.fs.exists(MACOS_MARKER).catch(() => false))
             ? `Right-Command key: ${$.plugin.root}/extras/right-command/install.sh installs a small helper so that a tap on the right Command key types ${LOOP} (macOS; no password; afterwards the person allows Input Monitoring and Accessibility in System Settings). Run it with bash only after the person says yes. Without it, typing icw offers ${LOOP}.`
             : `Right-Command key: no key installer for this system (the helper is macOS only). Ways to type ${LOOP} here: type icw and pick ${LOOP} from the menu; set a Loop shortcut such as ;; in the plugin's settings; on Windows, make a key combination type ${LOOP} with Microsoft PowerToys Keyboard Manager (README, "A key that types ${LOOP}"). Do not install anything for this.`,
           config.loopShortcut

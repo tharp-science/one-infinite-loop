@@ -402,3 +402,30 @@ test('a loop shortcut made only of letters or digits is ignored, so no word is e
   const box = await typed($, on, 'this an', 'd')
   expect(box.text).toBe('this and')
 })
+
+const sendFrom = ($: { prompt: unknown }, typed: string, kind: string) =>
+  ($.prompt as { submit: (e: object) => Promise<unknown> }).submit({
+    text: typed,
+    origin: { kind },
+    wait: false,
+  })
+
+for (const kind of ['bridge', 'sdk'] as const) {
+  test(`a loop sent with origin ${kind} (a phone through Remote Control, the desktop host) is resolved too`, async ($, on) => {
+    mock.store(on)
+    const seen = world(on)
+    await sendFrom($, 'https://a.example/x⌘"is this still true?"', kind)
+    expect(seen.sent[0]?.context?.[0] ?? '').toContain('https://a.example/x | resolved (address)')
+  })
+}
+
+test('from a phone, the key installer is not offered, and iOS text replacement is named', async ($, on) => {
+  mock.store(on)
+  const seen = world(on)
+  onMac(on, true)
+  await sendFrom($, '⌘', 'bridge')
+  const block = seen.sent[0]?.context?.[0] ?? ''
+  expect(block).not.toContain('install.sh')
+  expect(block).toContain('Remote Control')
+  expect(block).toContain('Text Replacement')
+})

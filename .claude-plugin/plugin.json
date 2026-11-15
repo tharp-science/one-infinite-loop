@@ -1,6 +1,6 @@
 {
   "name": "one-infinite-loop",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Makes ⌘ (i/c/w, in correspondence with) a working operator in the prompt: a live menu to pick fragments, addresses attached on send, loops drawn as links.",
   "author": {
     "name": "Thyke Applied Research & Participatory Prototyping (THARP)"
