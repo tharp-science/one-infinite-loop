@@ -234,3 +234,87 @@ test('the menu searches live and a click writes the handle into the draft', asyn
   expect(fills.at(-1)?.text).toBe('see ⌘scuba:river-papers ')
   await ui.unmount()
 })
+
+// A stranger: no server connected, no vault folder, nothing picked before.
+const stranger = (on: Parameters<typeof world>[0]) => {
+  const seen: World = { calls: [], sent: [] }
+  const clock = mock.clock(on)
+  on('tool.list', () => ({ value: [] }))
+  on('fs.list', () => ({ value: [] }))
+  on('prompt.submit', (_: unknown, e: { text: string; context?: readonly string[] }) => {
+    seen.sent.push({ text: e.text, context: e.context })
+
+    return { text: e.text, context: e.context }
+  })
+
+  return { seen, clock }
+}
+
+const ABOVE = {
+  plugin: 'one-infinite-loop',
+  component: 'AbovePrompt',
+  requestId: 'above-prompt',
+  surface: 'desktop',
+  props: {
+    hasSurvey: false,
+    isCollapsed: false,
+    isWorking: false,
+    maxRows: 12,
+    bodyColumns: 80,
+    scroll: { offset: 0, bodyRows: 11 },
+    view: {},
+  },
+} as const
+
+const typeLoop = async ($: { prompt: unknown }, on: Parameters<typeof world>[0], word: string) => {
+  on('prompt.read', () => ({ value: { text: word, cursor: word.length } }))
+  on('prompt.edit', (_: unknown, e: { text: string; start: number; end: number; inputText: string }) => ({
+    text: e.text.slice(0, e.start) + e.inputText + e.text.slice(e.end),
+    cursor: e.start + e.inputText.length,
+  }))
+  await ($.prompt as { edit: (e: object) => Promise<unknown> }).edit({
+    origin: { kind: 'composer' },
+    text: word.slice(0, -1),
+    cursor: word.length - 1,
+    start: word.length - 1,
+    end: word.length - 1,
+    inputText: word.slice(-1),
+  })
+}
+
+test('with no source set up, the menu says so and shows what works without one', async ($, on) => {
+  mock.store(on)
+  const { clock } = stranger(on)
+  await typeLoop($, on, '⌘heron')
+  await clock.advance(400)
+  const ui = await $.ui.mount(ABOVE)
+  expect(await ui.find({ type: 'Text', text: /no source is set up/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /https:\/\/.*⌘"/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /\/1loop sources/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a source that answers with nothing still says nothing found, without the setup hint', async ($, on) => {
+  mock.store(on)
+  const clock = mock.clock(on)
+  on('tool.list', () => ({
+    value: [{ name: 'mcp__srv__create_url_capture', description: '', mcp: true }],
+  }))
+  on('mcp.call', () => text({ captures: [], collections: [] }))
+  on('fs.list', () => ({ value: [] }))
+  await typeLoop($, on, '⌘scuba:egret')
+  await clock.advance(400)
+  const ui = await $.ui.mount(ABOVE)
+  expect(await ui.find({ type: 'Text', text: /nothing found/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /no source is set up/ })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('with no source set up, a search on send tells Claude why it is missing', async ($, on) => {
+  mock.store(on)
+  const { seen } = stranger(on)
+  await send($, '⌘kestrel what is in here?')
+  const block = seen.sent[0]?.context?.[0] ?? ''
+  expect(block).toContain('"kestrel" -> missing (no source answered')
+  expect(block).toContain('a link or quoted words')
+})

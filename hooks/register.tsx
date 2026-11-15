@@ -9,7 +9,7 @@ import type {
   RenderChildren,
 } from 'claude-code'
 
-import { canSearch, lastAnswer, search, within } from './adapters'
+import { SETUP_HINT, canSearch, lastAnswer, noneAnswered, search, within } from './adapters'
 import type { Config } from './adapters'
 import { LOOP, SOURCES, glyphsOf, parse, sidesOf } from './parse'
 import { contextBlock, offered, resolveAll, resolvedSides } from './resolve'
@@ -302,12 +302,15 @@ async function searchMenu(
   }))
   const seen = new Set<string>()
   menu.isOpen = true
-  menu.help = []
   menu.head = ask.head
   menu.rows = [...known, ...rows, ...ask.sourceRows].filter(
     row => !seen.has(row.write) && seen.add(row.write),
   )
-  menu.note = rows.length + known.length > 0 ? '' : 'nothing found'
+  const isBare = rows.length + known.length === 0
+  const isUnset = isBare && noneAnswered(ask.sources)
+  menu.note = !isBare ? '' : isUnset ? SETUP_HINT.menu : 'nothing found'
+  // Shown as lines, so the terminal's band carries them too.
+  menu.help = isUnset ? SETUP_HINT.lines : []
   $.ui.invalidate('ui.render')
 }
 

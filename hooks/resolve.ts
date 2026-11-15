@@ -2,7 +2,7 @@
 
 import type { EngineInterface } from 'claude-code'
 
-import { canSearch, search, within } from './adapters'
+import { SETUP_HINT, canSearch, noneAnswered, search, within } from './adapters'
 import type { Config } from './adapters'
 import { SOURCES, fits, sidesOf } from './parse'
 import type { Loop, Side } from './parse'
@@ -133,6 +133,10 @@ async function resolveSide(
       const hit = found[n]
       if (hit) mixed.push(hit)
     }
+  }
+
+  if (mixed.length === 0 && noneAnswered(sources)) {
+    return { status: 'missing', note: SETUP_HINT.send }
   }
 
   return fromSearch(mixed, wanted, config.candidates)

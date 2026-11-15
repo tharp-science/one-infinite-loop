@@ -8,6 +8,8 @@ It ships with three sample sources, Notion, Scuba and an Obsidian vault, and is 
 
 ## Install
 
+**First, update Claude Code.** The mod needs 2.1.290 or later. The desktop app updates itself. In a terminal, run `claude update`, then `claude --version` to check. An older build refuses the mod with an error about the manifest, not about its version.
+
 At the prompt of a terminal session:
 
 ```
@@ -22,8 +24,6 @@ claude plugin install one-infinite-loop --marketplace tharp-science/one-infinite
 
 In the desktop app, where `/plugin` does not run: click + next to the prompt box, then Plugins, Add marketplace with `tharp-science/one-infinite-loop`, then Add plugin.
 
-Requires Claude Code 2.1.290 or later.
-
 ## Using it
 
 Type ⌘ in the prompt (or `icw`, which the terminal's typeahead offers to replace).
@@ -37,6 +37,7 @@ Type ⌘ in the prompt (or `icw`, which the terminal's typeahead offers to repla
 | ⌘ again after a pick | The two are strung together: `scuba:river-papers⌘`, ready for the next pick. One row keeps them separate if you prefer. |
 | `"a new question"⌘…` or `https://a.link⌘…` | Your own words, or a link, set against a fragment. Words in double quotes are passed on as written; `[square brackets]` are looked up. |
 | `⌘` sent on its own | Claude answers with instructions. |
+| `⌘word` with no source set up | The menu says no source is set up, and shows what works without one: a link or your own words in quotes. |
 
 When you send, each side is resolved to an address and attached as context only Claude reads. Your typed text is never changed. In the transcript each ⌘ is coloured and each resolved side is a link.
 
@@ -59,7 +60,8 @@ Read this before installing. While you type a word that contains ⌘, the mod se
 
 - **Obsidian** needs one setting, **Obsidian vault folder**: the absolute path of your vault. Until it is set the source stays quiet.
 - **Notion** and **Scuba** need their MCP servers connected in Claude Code. Each server is found by a tool only it has, so server names need no setup; the settings can override them.
-- A source that is not set up, not connected, or does not answer is skipped. Nothing else breaks.
+- A source that is not set up, not connected, or does not answer is skipped. Nothing else breaks. When no source answers at all, the menu and the note Claude receives say so.
+- With no source set up, links and quoted words still work: `https://a.link⌘"a question"` needs no setup.
 
 ## Settings
 
