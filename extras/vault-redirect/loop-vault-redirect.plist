@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Keeps the redirect running after login. Replace the three placeholders,
+     copy to ~/Library/LaunchAgents/, then:
+     launchctl load ~/Library/LaunchAgents/loop-vault-redirect.plist -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>loop-vault-redirect</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/PATH/TO/node</string>
+    <string>/PATH/TO/extras/vault-redirect/server.mjs</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>LOOP_VAULT_ROOT</key><string>/PATH/TO/YOUR/VAULT</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+</dict>
+</plist>

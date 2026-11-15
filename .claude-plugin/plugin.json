@@ -1,0 +1,89 @@
+{
+  "name": "one-infinite-loop",
+  "version": "0.4.0",
+  "description": "Makes ⌘ (i/c/w, in correspondence with) a working operator in the prompt: a live menu to pick fragments, addresses attached on send, loops drawn as links.",
+  "author": {
+    "name": "Thyke Applied Research & Participatory Prototyping (THARP)"
+  },
+  "license": "MIT",
+  "userConfig": {
+    "sourceOrder": {
+      "type": "string",
+      "title": "Source order",
+      "description": "Order of picker rows and of searches, comma-separated.",
+      "default": "obsidian,notion,scuba"
+    },
+    "enabledSources": {
+      "type": "string",
+      "title": "Enabled sources",
+      "description": "Sources that are switched on, comma-separated.",
+      "default": "obsidian,notion,scuba,web"
+    },
+    "notionServer": {
+      "type": "string",
+      "title": "Notion MCP server",
+      "description": "Server name as /mcp lists it. Empty: found by its notion-search tool.",
+      "default": ""
+    },
+    "scubaServer": {
+      "type": "string",
+      "title": "Scuba MCP server",
+      "description": "Server name as /mcp lists it. Empty: found by its create_url_capture tool.",
+      "default": ""
+    },
+    "obsidianVault": {
+      "type": "string",
+      "title": "Obsidian vault folder",
+      "description": "Absolute path of the vault folder. Empty: the obsidian source stays quiet.",
+      "default": ""
+    },
+    "obsidianLinkBase": {
+      "type": "string",
+      "title": "Obsidian link base",
+      "description": "Prefix that turns a note's path into a link, such as http://localhost:27124/vault/ with the bundled redirect running.",
+      "default": ""
+    },
+    "sendBudgetMs": {
+      "type": "number",
+      "title": "Send budget (ms)",
+      "description": "Longest wait for searches when a prompt is sent.",
+      "default": 3000
+    },
+    "rows": {
+      "type": "number",
+      "title": "Picker rows",
+      "description": "Most rows the picker offers.",
+      "default": 20
+    },
+    "candidates": {
+      "type": "number",
+      "title": "Candidates",
+      "description": "Most candidates listed for an ambiguous side when a prompt is sent.",
+      "default": 5
+    },
+    "linkStyle": {
+      "type": "string",
+      "title": "Link style",
+      "description": "inline: outside the terminal, the message is redrawn with ⌘ coloured and its sides as links. below: the message stays as Claude Code draws it, with links on a line under it. The terminal always uses below.",
+      "options": [
+        "below",
+        "inline"
+      ],
+      "default": "inline"
+    },
+    "shimmerSeconds": {
+      "type": "number",
+      "title": "Shimmer (seconds)",
+      "description": "How long ⌘ glides through the rainbow in a new message before resting. 0 switches it off.",
+      "default": 15
+    },
+    "debug": {
+      "type": "boolean",
+      "title": "Debug",
+      "description": "Writes a dim line per hook to the transcript.",
+      "default": false
+    }
+  },
+  "homepage": "https://github.com/tharp-science/one-infinite-loop",
+  "repository": "https://github.com/tharp-science/one-infinite-loop"
+}
