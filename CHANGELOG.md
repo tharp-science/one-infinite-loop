@@ -10,6 +10,8 @@ Versions published to the GitHub marketplace and to the THARP organization libra
 - The menu keeps to the rows the band has, and counts the rest: "+ n more · keep typing to narrow".
 - A source pill keeps the words typed (`⌘scuba:river` from `⌘river`); after a source, "all sources" undoes the narrowing.
 - ⌘ on its own shows the usage in two lines instead of seven. Nothing found, and no source set up, each offer your own words in quotes as a side. After a pick, the next step leads; once two are strung, "keep them as two separate loops" comes last.
+- In the desktop app the mod starts with the session, so the first message of a chat arrives without its block. The skill now reads that as the mod still starting, not as no mod: it no longer says nothing was resolved, and for ⌘ sent first it explains the loop in two sentences and asks for ⌘ once more instead of guessing whether you are new or what is connected.
+- Skill 1.8.0.
 
 ## 0.8.0, 15 November 2026
 
