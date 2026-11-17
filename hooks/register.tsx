@@ -111,22 +111,106 @@ const PANE = 'loop-pick'
 const pick = { source: '', query: '', hits: [] as Fragment[], note: '' }
 const editing = { asked: 0, surface: '' }
 
-/** The live menu above the prompt: what the loop being typed could mean. */
+/**
+ * The live menu above the prompt: what the loop being typed could mean.
+ * Each line is a run of parts. A part with `pill` names a source and is
+ * drawn as that source's pill; nothing else is drawn that way, so a pill
+ * always means a source and titles stay plain.
+ */
+type Part = { text: string; tone?: 'dim' | 'bold' | 'loop' | 'warn'; pill?: string }
 type MenuRow = {
-  label: string
-  hint: string
+  parts: Part[]
   write: string
   fragment?: Fragment
   /** Set on the row that turns the prefix loop just picked into an infix. */
   join?: { from: string; to: string }
 }
+type Chip = { source: string; label: string; write: string }
+type MenuLine = {
+  parts?: Part[]
+  row?: MenuRow
+  chips?: { lead: string; items: Chip[]; tail?: string }
+  /** A search result: the lines dropped first when the band is full. */
+  isHit?: boolean
+}
 const menu = {
   isOpen: false,
-  head: '',
-  note: '',
-  rows: [] as MenuRow[],
-  help: [] as string[],
+  head: [] as Part[],
+  lines: [] as MenuLine[],
+  /** Lines the terminal's band carries too; its rows are in the typeahead. */
+  help: [] as Part[][],
   seq: 0,
+}
+
+const plain = (text: string): Part => ({ text })
+const dim = (text: string): Part => ({ text, tone: 'dim' })
+const bold = (text: string): Part => ({ text, tone: 'bold' })
+const warn = (text: string): Part => ({ text, tone: 'warn' })
+const pill = (source: string, text = source): Part => ({ text, pill: source })
+const GLYPH: Part = { text: LOOP, tone: 'loop' }
+/** The colour of the first loop in a draft, so the menu matches it. */
+const GLYPH_COLOR = hueColor(200)
+const WARN_COLOR = '#A8450C'
+
+/**
+ * One tint per source, text and ground both, contrast above 6:1. Where the
+ * surface draws no background behind text, the bold text colour alone is
+ * left, which still sets the source apart from the title.
+ */
+const PILL: Record<string, { color: string; ground: string }> = {
+  obsidian: { color: '#5B3FA8', ground: '#EEE8FB' },
+  notion: { color: '#3D3D3A', ground: '#E8E7E1' },
+  scuba: { color: '#1D6559', ground: '#DDF0EC' },
+}
+const PILL_OTHER = { color: '#3D3D3A', ground: '#E8E7E1' }
+
+/** How the loop is used, short enough for the band: the card Claude gets is `USAGE`. */
+const menuUsage = (first: string): Part[][] => [
+  [
+    plain(`${LOOP}name`), dim('  everywhere     '),
+    plain(`${LOOP}${first}:name`), dim('  one source     '),
+    plain(`a${LOOP}b`), dim('  connect two     '),
+    plain(`a${LOOP}`), dim('  one side open'),
+  ],
+  [
+    plain(`"words"${LOOP}b`), dim('  or  '), plain(`https://…${LOOP}b`),
+    dim('  set something new against what exists'),
+  ],
+]
+
+/**
+ * What each source said to the search under way. A source that is not set
+ * up or not connected stays quiet (`off`) and is left out; only one that was
+ * asked and did not answer in time is named (`silent`).
+ */
+type Status = number | 'asking' | 'silent' | 'off'
+const stateOf = (source: string, status: Map<string, Status>): Status =>
+  status.get(source) ??
+  (lastAnswer.get(source)?.state === 'unavailable' ? 'off' : 'asking')
+const statusParts = (sources: string[], status: Map<string, Status>): Part[] =>
+  sources.filter(source => stateOf(source, status) !== 'off').flatMap((source, n) => {
+    const state = stateOf(source, status)
+
+    return [
+      ...(n > 0 ? [plain(' ')] : []),
+      pill(source, typeof state === 'number' ? `${source} ${state}` : source),
+      ...(state === 'asking' ? [dim('…')] : state === 'silent' ? [warn(' not reached')] : []),
+    ]
+  })
+
+const pickedRow = (kept: string) => (h: Handle): MenuLine => ({
+  row: {
+    parts: [GLYPH, plain(` ${h.title}   `), pill(h.source)],
+    write: `${kept}${h.source}:${h.slug} `,
+  },
+})
+
+/** Opens the menu with these lines, replacing what it showed. */
+function showMenu(head: Part[], lines: MenuLine[], help: Part[][] = []): void {
+  menu.isOpen = true
+  menu.head = head
+  menu.lines = lines
+  menu.help = help
 }
 
 /** How the loop is used: shown when ⌘ stands alone, typed or sent. */
@@ -159,6 +243,19 @@ const spotAt = (text: string, cursor: number) => {
     : { start, kept: token.slice(0, at + 1), typed: token.slice(at + 1) }
 }
 
+/** What a search under way needs to draw its results as they come. */
+type Ask = {
+  seq: number
+  kept: string
+  query: string
+  needle: string
+  word: string
+  sources: string[]
+  head: Part[]
+  quoted: string
+  chips: MenuLine
+}
+
 /**
  * Brings the menu in line with the draft. Sources and handles show at once;
  * a search waits 200 ms for the typing to pause, and a later edit drops it.
@@ -174,11 +271,18 @@ function refreshMenu(
   // icw, the operator spelled out, offers the character: on the desktop there
   // is no typeahead to do it, and a key that types ⌘ may not be set up yet.
   if (!spot && ICW_AT_END.test(text.slice(0, cursor))) {
-    menu.isOpen = true
-    menu.head = 'icw'
-    menu.note = ''
-    menu.help = []
-    menu.rows = [{ label: LOOP, hint: 'in correspondence with', write: LOOP }]
+    showMenu(
+      [dim('icw  →  '), GLYPH],
+      [
+        {
+          row: {
+            parts: [GLYPH, plain('  write '), GLYPH, dim('    in correspondence with')],
+            write: LOOP,
+          },
+        },
+        { parts: [dim(`send ${LOOP} on its own for other ways to type it`)] },
+      ],
+    )
     $.ui.invalidate('ui.render')
 
     return
@@ -186,7 +290,7 @@ function refreshMenu(
   if (!spot) {
     if (menu.isOpen) {
       menu.isOpen = false
-      menu.rows = []
+      menu.lines = []
       $.ui.invalidate('ui.render')
     }
 
@@ -199,121 +303,154 @@ function refreshMenu(
   const colon = typed.indexOf(':')
   const named = colon > 0 ? typed.slice(0, colon) : ''
   const isSourced = config.order.includes(named)
-  const query = (isSourced ? typed.slice(colon + 1) : typed)
-    .replace(/[-_]+/g, ' ')
-    .trim()
-  const sourceRows: MenuRow[] = isSourced
-    ? []
-    : config.order
-        .filter(source => source.startsWith(typed.toLowerCase()))
-        .map(source => ({
-          label: `${LOOP}${source}:`,
-          hint: canSearch(source) ? `search ${source} only` : 'paste a URL',
-          write: `${kept}${source}:`,
-        }))
-  // a⌘ with a picked fragment on the left: the two are strung together by
-  // default. One row undoes that, for two separate loops.
-  const strung = /^([^\s⌘]+:[^\s⌘]+)⌘$/.exec(kept)
-  if (strung && typed === '') {
-    sourceRows.unshift({
-      label: `${LOOP}${strung[1]} ${LOOP}…`,
-      hint: 'keep them as two separate loops',
-      write: '',
-      join: { from: kept, to: `${LOOP}${strung[1]} ${LOOP}` },
-    })
-  }
-  const handleRow = (h: Handle): MenuRow => ({
-    label: h.title,
-    hint: `${h.source} · picked before`,
-    write: `${kept}${h.source}:${h.slug} `,
-  })
-  const show = (rows: MenuRow[], note: string) => {
+  // The words as typed, kept when the source changes; the query searched.
+  const word = isSourced ? typed.slice(colon + 1) : typed
+  const query = word.replace(/[-_]+/g, ' ').trim()
+  const searched = config.order.filter(source => canSearch(source))
+  const lowered = typed.toLowerCase()
+  // One line of source pills. A pill whose name the person is spelling
+  // finishes the name; any other carries the words typed so far.
+  const chips: MenuLine = isSourced
+    ? {
+        chips: {
+          lead: 'search instead in',
+          items: [
+            { source: '', label: 'all sources', write: `${kept}${word}` },
+            ...searched
+              .filter(source => source !== named)
+              .map(source => ({ source, label: source, write: `${kept}${source}:${word}` })),
+          ],
+        },
+      }
+    : {
+        chips: {
+          lead: 'only in',
+          items: searched.map(source => ({
+            source,
+            label: source,
+            write:
+              query.length < 2 || source.startsWith(lowered)
+                ? `${kept}${source}:`
+                : `${kept}${source}:${word}`,
+          })),
+        },
+      }
+  const show = (head: Part[], lines: MenuLine[], help: Part[][] = []) => {
     if (seq !== menu.seq) return
-    menu.isOpen = rows.length > 0 || note !== ''
-    menu.head = `${LOOP} ${isSourced ? named : 'all sources'}`
-    menu.note = note
-    menu.rows = rows
-    // The loop on its own, nothing typed after it: show how it is used.
-    menu.help = typed === '' && kept === LOOP ? USAGE : []
-    if (strung && typed === '') menu.head = `${LOOP} ${strung[1]} with…`
+    showMenu(head, lines, help)
     $.ui.invalidate('ui.render')
   }
+  const recentThen = (
+    head: Part[],
+    label: string,
+    before: MenuLine[],
+    after: MenuLine[],
+    help: Part[][] = [],
+    leaveOut = '',
+  ) => {
+    show(head, [...before, ...after], help)
+    void heldHandles($).then(handles => {
+      const recent = [...handles]
+        .filter(h => (!isSourced || h.source === named) && `${h.source}:${h.slug}` !== leaveOut)
+        .sort((a, b) => b.usedAt - a.usedAt)
+        .slice(0, 4)
+        .map(pickedRow(kept))
+      if (recent.length > 0) {
+        show(head, [...before, { parts: [dim(label)] }, ...recent, ...after], help)
+      }
+    })
+  }
 
+  // a⌘ with a picked fragment on the left: the two are strung together by
+  // default. One row, last, undoes that, for two separate loops.
+  const strung = /^([^\s⌘]+:[^\s⌘]+)⌘$/.exec(kept)
+  if (strung && typed === '') {
+    const apart: MenuLine = {
+      row: {
+        parts: [dim('keep them as two separate loops   '), plain(`${LOOP}${strung[1]} ${LOOP}…`)],
+        write: '',
+        join: { from: kept, to: `${LOOP}${strung[1]} ${LOOP}` },
+      },
+    }
+    recentThen(
+      [plain(strung[1] ?? ''), GLYPH, bold('…'), dim(' · with what? type a name or pick')],
+      'Picked lately',
+      [],
+      [chips, apart],
+      [],
+      strung[1],
+    )
+
+    return
+  }
+  // The loop on its own, nothing typed after it: how it is used.
+  if (typed === '' && kept === LOOP) {
+    const withTail: MenuLine = {
+      chips: { ...chips.chips!, tail: '/1loop lists this session' },
+    }
+    recentThen(
+      [GLYPH, dim(' · type a name to search every source, or pick one below')],
+      'Picked lately',
+      [],
+      [withTail],
+      menuUsage(searched[0] ?? 'source'),
+    )
+
+    return
+  }
   // A shortcut such as ⌘K: one character that names no source.
-  if (!isSourced && typed.length === 1 && sourceRows.length === 0) {
-    show([], '')
+  if (!isSourced && typed.length === 1 && !searched.some(s => s.startsWith(lowered))) {
+    show([], [])
+    menu.isOpen = false
 
     return
   }
   if (query.length < 2) {
-    show(sourceRows, isSourced ? 'type two characters to search' : '')
-    void heldHandles($).then(handles => {
-      const recent = [...handles]
-        .filter(h => !isSourced || h.source === named)
-        .sort((a, b) => b.usedAt - a.usedAt)
-        .slice(0, 5)
-        .map(handleRow)
-      if (recent.length > 0) {
-        show(
-          [...sourceRows, ...recent],
-          isSourced ? 'type two characters to search' : '',
-        )
-      }
-    })
+    const head = isSourced
+      ? [
+          GLYPH, bold(word), dim(' · in '), pill(named),
+          dim(query.length === 0 ? '    type two characters to search' : '    one more character to search'),
+        ]
+      : [GLYPH, bold(typed), dim(' · all sources')]
+    recentThen(head, isSourced ? `Picked lately in ${named}` : 'Picked lately', [], [chips])
 
     return
   }
 
-  show(sourceRows, 'searching…')
+  const sources = isSourced ? [named] : searched
+  const ask: Ask = {
+    seq,
+    kept,
+    query,
+    needle: word.toLowerCase(),
+    word,
+    sources,
+    head: isSourced
+      ? [GLYPH, bold(word), dim(' · ')]
+      : [GLYPH, bold(word), dim(' · all sources    ')],
+    // Your own words as a side: in front of the loop, or after a side
+    // already there.
+    quoted: kept === LOOP ? `"${query}"${LOOP}` : `${kept}"${query}" `,
+    chips,
+  }
+  show([...ask.head, ...statusParts(sources, new Map())], [chips])
   $.clock.after(200, () => {
     if (seq !== menu.seq) return
-    void searchMenu($, config, {
-      seq,
-      kept,
-      query,
-      needle: typed.toLowerCase(),
-      sources: isSourced
-        ? [named]
-        : config.order.filter(source => canSearch(source)),
-      sourceRows,
-      head: `${LOOP} ${isSourced ? named : 'all sources'}`,
-    })
+    void searchMenu($, config, ask)
   })
 }
 
+/**
+ * Asks each source and draws its rows as soon as it answers, so a slow
+ * source holds up only itself.
+ */
 async function searchMenu(
   $: EngineInterface,
   config: Config,
-  ask: {
-    seq: number
-    kept: string
-    query: string
-    needle: string
-    sources: string[]
-    sourceRows: MenuRow[]
-    head: string
-  },
+  ask: Ask,
 ): Promise<void> {
   const handles = await heldHandles($)
-  const found = await within(
-    $,
-    Promise.all(
-      ask.sources.map(source =>
-        search($, config, source, ask.query, config.rows),
-      ),
-    ),
-    4000,
-    [] as Fragment[][],
-  )
   if (ask.seq !== menu.seq) return
-  // Sources turn about, so one does not fill the menu.
-  const mixed: Fragment[] = []
-  for (let n = 0; n < Math.max(0, ...found.map(f => f.length)); n++) {
-    for (const hits of found) {
-      const hit = hits[n]
-      if (hit) mixed.push(hit)
-    }
-  }
   const known: MenuRow[] = handles
     .filter(
       h =>
@@ -322,36 +459,103 @@ async function searchMenu(
           h.title.toLowerCase().includes(ask.query.toLowerCase())),
     )
     .slice(0, 3)
-    .map(h => ({
-      label: h.title,
-      hint: `${h.source} · picked before`,
-      write: `${ask.kept}${h.source}:${h.slug} `,
-    }))
-  const rows: MenuRow[] = mixed.map(hit => ({
-    label: hit.title,
-    hint: `${hit.source}${hit.kind ? ` ${hit.kind}` : ''}`,
-    write: `${ask.kept}${hit.source}:${slugFor(handles, hit)} `,
-    fragment: hit,
-  }))
-  const seen = new Set<string>()
-  menu.isOpen = true
-  menu.head = ask.head
-  menu.rows = [...known, ...rows, ...ask.sourceRows].filter(
-    row => !seen.has(row.write) && seen.add(row.write),
+    .map(h => pickedRow(ask.kept)(h).row!)
+  const found = new Map<string, Fragment[]>()
+  const status = new Map<string, Status>()
+  const draw = () => {
+    if (ask.seq !== menu.seq) return
+    // Sources turn about, so one does not fill the menu.
+    const lists = ask.sources.map(source => found.get(source) ?? [])
+    const mixed: Fragment[] = []
+    for (let n = 0; n < Math.max(0, ...lists.map(f => f.length)); n++) {
+      for (const hits of lists) {
+        const hit = hits[n]
+        if (hit) mixed.push(hit)
+      }
+    }
+    const seen = new Set(known.map(row => row.write))
+    const hits: MenuRow[] = mixed
+      .map(hit => {
+        const detail = [hit.kind, hit.snippet].filter(Boolean).join(' · ')
+
+        return {
+          parts: [plain(`${hit.title}   `), pill(hit.source), ...(detail ? [dim(`  ${detail}`)] : [])],
+          write: `${ask.kept}${hit.source}:${slugFor(handles, hit)} `,
+          fragment: hit,
+        }
+      })
+      .filter(row => !seen.has(row.write) && seen.add(row.write))
+    const isDone = ask.sources.every(source => status.has(source))
+    const lines: MenuLine[] = []
+    if (known.length > 0) {
+      lines.push({ parts: [dim('Picked before')] }, ...known.map(row => ({ row })))
+    }
+    if (hits.length > 0) {
+      lines.push({ parts: [dim('Found')] }, ...hits.map(row => ({ row, isHit: true })))
+    }
+    const status$ = statusParts(ask.sources, status)
+    if (known.length + hits.length > 0 || !isDone) {
+      showMenu([...ask.head, ...status$], [...lines, ask.chips])
+    } else if (noneAnswered(ask.sources)) {
+      // Nothing could be asked: say so, and offer what works without a source.
+      showMenu(
+        [GLYPH, bold(ask.word), dim(` · ${SETUP_HINT.menu}`)],
+        [
+          {
+            row: {
+              parts: [plain(ask.quoted.trim()), dim('    your words as one side: works without a source')],
+              write: ask.quoted,
+            },
+          },
+        ],
+        SETUP_HINT.lines.map(line => [dim(line)]),
+      )
+    } else {
+      showMenu(
+        [GLYPH, bold(ask.word), dim(' · nothing found    '), ...status$],
+        [
+          {
+            row: {
+              parts: [plain(ask.quoted.trim()), dim('    use your words as written for this side')],
+              write: ask.quoted,
+            },
+          },
+          ask.chips,
+        ],
+      )
+    }
+    $.ui.invalidate('ui.render')
+  }
+
+  draw()
+  await Promise.all(
+    ask.sources.map(async source => {
+      const hits = await within(
+        $,
+        search($, config, source, ask.query, config.rows),
+        4000,
+        null as Fragment[] | null,
+      )
+      if (ask.seq !== menu.seq) return
+      found.set(source, hits ?? [])
+      status.set(
+        source,
+        hits === null
+          ? 'silent'
+          : lastAnswer.get(source)?.state === 'unavailable'
+            ? 'off'
+            : hits.length,
+      )
+      draw()
+    }),
   )
-  const isBare = rows.length + known.length === 0
-  const isUnset = isBare && noneAnswered(ask.sources)
-  menu.note = !isBare ? '' : isUnset ? SETUP_HINT.menu : 'nothing found'
-  // Shown as lines, so the terminal's band carries them too.
-  menu.help = isUnset ? SETUP_HINT.lines : []
-  $.ui.invalidate('ui.render')
 }
 
 /** Writes a menu row over the loop being typed, and saves a picked fragment. */
 async function pickRow(
   $: EngineInterface,
   config: Config,
-  row: MenuRow,
+  row: Pick<MenuRow, 'write' | 'fragment' | 'join'>,
 ): Promise<void> {
   const box = await $.prompt.read()
   const spot = spotAt(box.text, box.cursor)
@@ -389,18 +593,19 @@ async function pickRow(
   const isHandle = row.write.endsWith(' ') && handle.includes(':')
   if (isHandle && handle.startsWith(LOOP) && !handle.slice(1).includes(LOOP)) {
     menu.seq += 1
-    menu.isOpen = true
-    menu.help = []
-    menu.head = `${LOOP} added ${handle}`
-    menu.note = ''
-    menu.rows = [
-      {
-        label: `${handle.slice(1)}${LOOP}…`,
-        hint: 'connect it with another fragment',
-        write: '',
-        join: { from: row.write, to: `${handle.slice(1)}${LOOP}` },
-      },
-    ]
+    showMenu(
+      [dim('Added  '), GLYPH, plain(handle.slice(1)), dim('  · kept for next time')],
+      [
+        {
+          row: {
+            parts: [plain(handle.slice(1)), GLYPH, plain('…'), dim('    connect it with another fragment')],
+            write: '',
+            join: { from: row.write, to: `${handle.slice(1)}${LOOP}` },
+          },
+        },
+        { parts: [dim('or keep writing; Enter sends')] },
+      ],
+    )
     $.ui.invalidate('ui.render')
   }
 }
@@ -617,34 +822,113 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (!menu.isOpen || e.props.hasSurvey) return next(e)
     // Where the prompt box has a typeahead (the terminal), the rows are
-    // there, chosen by keyboard. The band then only carries the usage card.
+    // there, chosen by keyboard. The band then only carries the help lines.
     const hasTypeahead = picker.asked > 0
     if (hasTypeahead && menu.help.length === 0) return next(e)
-    const rows = hasTypeahead ? [] : menu.rows
     const { Box, Text, Button } = $.ui.resolve(e)
-    const width = Math.max(20, e.props.bodyColumns - 24)
+    const width = Math.max(20, e.props.bodyColumns - 2)
+    const budget = Math.max(4, e.props.maxRows || 12)
+
+    // A line's parts, cut to the width. A pill is drawn whole or not at all.
+    // Help lines are left whole: they wrap, as they always have.
+    // Room for every pill on the line is held back first, so a long title
+    // is cut before its source is.
+    const draw = (parts: Part[], isWhole = false): RenderChildren[] => {
+      let left = isWhole ? Infinity : width
+      const texts = parts.map(part => (part.pill === undefined ? part.text : ` ${part.text} `))
+      const pillsAfter = (n: number) =>
+        parts.slice(n + 1).reduce((sum, part, k) => sum + (part.pill === undefined ? 0 : (texts[n + 1 + k]?.length ?? 0)), 0)
+      const out: RenderChildren[] = []
+      for (const [n, part] of parts.entries()) {
+        const text = texts[n] ?? ''
+        const room = left - pillsAfter(n)
+        const cut =
+          part.pill !== undefined
+            ? text.length <= left ? text : ''
+            : text.length <= room ? text : room > 1 ? `${text.slice(0, room - 1)}…` : ''
+        if (cut === '') continue
+        left -= cut.length
+        const tint = part.pill === undefined ? undefined : (PILL[part.pill] ?? PILL_OTHER)
+        out.push(
+          tint ? (
+            <Text key={`p${n}`} bold color={tint.color} backgroundColor={tint.ground}>{cut}</Text>
+          ) : part.tone === 'dim' ? (
+            <Text key={`p${n}`} dimColor>{cut}</Text>
+          ) : part.tone === 'bold' ? (
+            <Text key={`p${n}`} bold>{cut}</Text>
+          ) : part.tone === 'loop' ? (
+            <Text key={`p${n}`} bold color={GLYPH_COLOR}>{cut}</Text>
+          ) : part.tone === 'warn' ? (
+            <Text key={`p${n}`} color={WARN_COLOR}>{cut}</Text>
+          ) : (
+            cut
+          ),
+        )
+      }
+
+      return out
+    }
+
+    // The band holds `maxRows` lines. Results go first, from the end, and
+    // one line says how many more there are.
+    let body = hasTypeahead ? [] : menu.lines
+    const fixed = 1 + menu.help.length
+    if (fixed + body.length > budget) {
+      const hits = body.filter(line => line.isHit).length
+      const drop = Math.min(hits, fixed + body.length + 1 - budget)
+      if (drop > 0) {
+        let skip = drop
+        const kept = [...body].reverse().filter(line => !(line.isHit && skip-- > 0)).reverse()
+        const after = kept.map(line => line.isHit === true).lastIndexOf(true)
+        body = [
+          ...kept.slice(0, after + 1),
+          { parts: [dim(`+ ${drop} more · keep typing to narrow`)] },
+          ...kept.slice(after + 1),
+        ]
+      }
+      body = body.slice(0, Math.max(0, budget - fixed))
+    }
+
+    let rowN = 0
 
     return (
       <Box flexDirection="column">
-        <Text dimColor>
-          {menu.head}
-          {menu.note && !hasTypeahead ? ` · ${menu.note}` : ''}
-        </Text>
-        {menu.help.map(line => (
-          <Text dimColor>{line}</Text>
+        <Text>{draw(menu.head)}</Text>
+        {menu.help.map(parts => (
+          <Text>{draw(parts, true)}</Text>
         ))}
-        {rows.slice(0, config.rows).map((row, n) => (
-          <Button
-            key={`loop-${n}`}
-            plain
-            onPress={() => void pickRow($, config, row)}
-          >
-            {row.label.length > width
-              ? `${row.label.slice(0, width - 1)}…`
-              : row.label}{' '}
-            <Text dimColor>{row.hint}</Text>
-          </Button>
-        ))}
+        {body.map(line => {
+          if (line.row) {
+            const row = line.row
+
+            return (
+              <Button key={`loop-${rowN++}`} plain onPress={() => void pickRow($, config, row)}>
+                {draw(row.parts)}
+              </Button>
+            )
+          }
+          if (line.chips) {
+            const { lead, items, tail } = line.chips
+
+            return (
+              <Box flexDirection="row">
+                <Text dimColor>{`${lead}   `}</Text>
+                {items.map(chip => (
+                  <Button
+                    key={`src-${chip.source || 'all'}`}
+                    plain
+                    onPress={() => void pickRow($, config, { write: chip.write })}
+                  >
+                    {draw([pill(chip.source, chip.label), plain(' ')])}
+                  </Button>
+                ))}
+                {tail ? <Text dimColor>{`      ${tail}`}</Text> : null}
+              </Box>
+            )
+          }
+
+          return <Text>{draw(line.parts ?? [])}</Text>
+        })}
       </Box>
     )
   })
@@ -742,7 +1026,7 @@ export const register: Register = (on, options) => {
     if (menu.isOpen) {
       menu.seq += 1
       menu.isOpen = false
-      menu.rows = []
+      menu.lines = []
       $.ui.invalidate('ui.render')
     }
     try {

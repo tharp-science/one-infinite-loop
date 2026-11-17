@@ -2,6 +2,15 @@
 
 Versions published to the GitHub marketplace and to the THARP organization library. 0.4.1 and 0.6.0 were steps inside pull requests and were never released on their own; what they added is listed under the release that carried it.
 
+## Unreleased
+
+- The menu above the prompt, redrawn. Each source is a pill of its own colour, in the rows, in the head and on one line of source pills, so a source never reads as part of a title. Where a surface draws no background behind text, the pill is its source's colour in bold.
+- The head repeats what you typed and says, per source, how many it found, which it is still asking, and which it could not reach. Each source's rows appear as soon as it answers, not after the slowest.
+- Fragments picked before have their own section and the coloured ⌘; results show their kind and path or summary.
+- The menu keeps to the rows the band has, and counts the rest: "+ n more · keep typing to narrow".
+- A source pill keeps the words typed (`⌘scuba:river` from `⌘river`); after a source, "all sources" undoes the narrowing.
+- ⌘ on its own shows the usage in two lines instead of seven. Nothing found, and no source set up, each offer your own words in quotes as a side. After a pick, the next step leads; once two are strung, "keep them as two separate loops" comes last.
+
 ## 0.8.0, 15 November 2026
 
 Good artists copy, great artists sumi.
