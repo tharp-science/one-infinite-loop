@@ -2,6 +2,10 @@
 
 Versions published to the GitHub marketplace and to the THARP organization library. 0.4.1 and 0.6.0 were steps inside pull requests and were never released on their own; what they added is listed under the release that carried it.
 
+## 0.9.1, 17 November 2026
+
+- In the desktop app the source pills and the coloured ⌘ came out as plain text: the app draws a menu button's label in its own style and drops the colours of what it holds. A row is now its ⌘, one button with the title and any detail, and its source pill after it, outside the button. On the line of sources, each name keeps its button and gets a mark in its pill colours before it.
+
 ## 0.9.0, 17 November 2026
 
 - A new icon from the One Infinite Loop page on tharp.science: the loop mark on the hero's plasma, in place of the THARP² lettering, which did not read as the loop at small sizes. Its source is `extras/icon/icon.svg`.

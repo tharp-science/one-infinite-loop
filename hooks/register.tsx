@@ -833,12 +833,12 @@ export const register: Register = (on, options) => {
     // Help lines are left whole: they wrap, as they always have.
     // Room for every pill on the line is held back first, so a long title
     // is cut before its source is.
-    const draw = (parts: Part[], isWhole = false): RenderChildren[] => {
+    const fit = (parts: Part[], isWhole = false): { part: Part; n: number; cut: string }[] => {
       let left = isWhole ? Infinity : width
       const texts = parts.map(part => (part.pill === undefined ? part.text : ` ${part.text} `))
       const pillsAfter = (n: number) =>
         parts.slice(n + 1).reduce((sum, part, k) => sum + (part.pill === undefined ? 0 : (texts[n + 1 + k]?.length ?? 0)), 0)
-      const out: RenderChildren[] = []
+      const out: { part: Part; n: number; cut: string }[] = []
       for (const [n, part] of parts.entries()) {
         const text = texts[n] ?? ''
         const room = left - pillsAfter(n)
@@ -848,25 +848,50 @@ export const register: Register = (on, options) => {
             : text.length <= room ? text : room > 1 ? `${text.slice(0, room - 1)}…` : ''
         if (cut === '') continue
         left -= cut.length
-        const tint = part.pill === undefined ? undefined : (PILL[part.pill] ?? PILL_OTHER)
-        out.push(
-          tint ? (
-            <Text key={`p${n}`} bold color={tint.color} backgroundColor={tint.ground}>{cut}</Text>
-          ) : part.tone === 'dim' ? (
-            <Text key={`p${n}`} dimColor>{cut}</Text>
-          ) : part.tone === 'bold' ? (
-            <Text key={`p${n}`} bold>{cut}</Text>
-          ) : part.tone === 'loop' ? (
-            <Text key={`p${n}`} bold color={GLYPH_COLOR}>{cut}</Text>
-          ) : part.tone === 'warn' ? (
-            <Text key={`p${n}`} color={WARN_COLOR}>{cut}</Text>
-          ) : (
-            cut
-          ),
-        )
+        out.push({ part, n, cut })
       }
 
       return out
+    }
+    const paint = ({ part, n, cut }: { part: Part; n: number; cut: string }): RenderChildren => {
+      const tint = part.pill === undefined ? undefined : (PILL[part.pill] ?? PILL_OTHER)
+
+      return tint ? (
+        <Text key={`p${n}`} bold color={tint.color} backgroundColor={tint.ground}>{cut}</Text>
+      ) : part.tone === 'dim' ? (
+        <Text key={`p${n}`} dimColor>{cut}</Text>
+      ) : part.tone === 'bold' ? (
+        <Text key={`p${n}`} bold>{cut}</Text>
+      ) : part.tone === 'loop' ? (
+        <Text key={`p${n}`} bold color={GLYPH_COLOR}>{cut}</Text>
+      ) : part.tone === 'warn' ? (
+        <Text key={`p${n}`} color={WARN_COLOR}>{cut}</Text>
+      ) : (
+        cut
+      )
+    }
+    const draw = (parts: Part[], isWhole = false): RenderChildren[] => fit(parts, isWhole).map(paint)
+    // A desktop draws a Button's label in its own style and drops the colours
+    // of the Text inside it. So a row is drawn as its leading ⌘, one Button
+    // with the words, and its source pills after it: a pill reads as the
+    // row's source and never as part of what is pressed.
+    const drawRow = (parts: Part[], key: string, onPress: () => void) => {
+      const lead = parts.findIndex(part => part.tone !== 'loop')
+      const head = lead < 0 ? parts : parts.slice(0, lead)
+      const rest = lead < 0 ? [] : parts.slice(lead)
+      const ordered = [
+        ...head,
+        ...rest.filter(part => part.pill === undefined),
+        ...rest.filter(part => part.pill !== undefined),
+      ]
+      const segs = fit(ordered)
+      const words = segs.filter(seg => seg.n >= head.length && seg.part.pill === undefined)
+
+      return [
+        ...segs.filter(seg => seg.n < head.length).map(paint),
+        words.length > 0 ? <Button key={key} plain onPress={onPress}>{words.map(paint)}</Button> : null,
+        ...segs.filter(seg => seg.part.pill !== undefined).map(paint),
+      ]
     }
 
     // The band holds `maxRows` lines. Results go first, from the end, and
@@ -901,10 +926,12 @@ export const register: Register = (on, options) => {
           if (line.row) {
             const row = line.row
 
+            const n = rowN++
+
             return (
-              <Button key={`loop-${rowN++}`} plain onPress={() => void pickRow($, config, row)}>
-                {draw(row.parts)}
-              </Button>
+              <Box key={`row-${n}`} flexDirection="row">
+                {drawRow(row.parts, `loop-${n}`, () => void pickRow($, config, row))}
+              </Box>
             )
           }
           if (line.chips) {
@@ -913,15 +940,24 @@ export const register: Register = (on, options) => {
             return (
               <Box flexDirection="row">
                 <Text dimColor>{`${lead}   `}</Text>
-                {items.map(chip => (
-                  <Button
-                    key={`src-${chip.source || 'all'}`}
-                    plain
-                    onPress={() => void pickRow($, config, { write: chip.write })}
-                  >
-                    {draw([pill(chip.source, chip.label), plain(' ')])}
-                  </Button>
-                ))}
+                {items.map(chip => {
+                  // A Button takes no colour on a desktop: the source's own
+                  // pill colours go on a mark before its name.
+                  const tint = chip.source === '' ? undefined : (PILL[chip.source] ?? PILL_OTHER)
+
+                  return (
+                    <Box key={`chip-${chip.source || 'all'}`} flexDirection="row">
+                      {tint ? <Text bold color={tint.color} backgroundColor={tint.ground}>{' ● '}</Text> : null}
+                      <Button
+                        key={`src-${chip.source || 'all'}`}
+                        plain
+                        onPress={() => void pickRow($, config, { write: chip.write })}
+                      >
+                        {` ${chip.label}   `}
+                      </Button>
+                    </Box>
+                  )
+                })}
                 {tail ? <Text dimColor>{`      ${tail}`}</Text> : null}
               </Box>
             )
