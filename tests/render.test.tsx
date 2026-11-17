@@ -115,8 +115,9 @@ test('typing a loop opens the menu above the prompt', async ($, on) => {
       view: {},
     },
   })
-  expect(await ui.find({ type: 'Button', text: /⌘notion:/ })).toBeDefined()
-  expect(await ui.find({ type: 'Text', text: /connect two fragments/ })).toBeDefined()
+  // Sources are one line of pills; the usage card is two lines.
+  expect(await ui.find({ key: 'src-notion' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /connect two/ })).toBeDefined()
   await ui.unmount()
 })
 

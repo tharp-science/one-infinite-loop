@@ -3,7 +3,7 @@ name: loop-correspondence
 description: Interpret and use ⌘ or i/c/w to put ideas, evidence, questions and perspectives in correspondence. Use when someone writes a loop between two things or in front of one, or when making a specific relationship visible would help people or agents continue the work. Works with or without the One Infinite Loop mod.
 ---
 
-Version 1.7.0. Bundled with the One Infinite Loop mod; it does not need the mod to work.
+Version 1.8.0. Bundled with the One Infinite Loop mod; it does not need the mod to work.
 
 ## Read the loop
 
@@ -38,6 +38,8 @@ When someone sends `⌘` alone and is new to it, walk them through one loop of t
 
 Without the mod (other Claude apps, other assistants) do steps 1, 3 and a version of 4 in which they paste a passage instead of picking it.
 
+When `⌘` alone is the first message of a conversation and came without the mod's block (see "A first message without the block" below), the block's answers are missing: whether they are new, which sources are connected, whether the key installer is offered. Do not guess them. Say in two sentences what the loop is (step 1), then ask them to send `⌘` once more: the mod is running from now on, and its block will tell you where to go from there.
+
 ## Follow an existing loop
 
 1. Identify the sides. Use the current conversation, supplied excerpts and accessible links. Prefer the passage, observation or version that bears directly on the relationship. If a side is ambiguous, ask only when choosing the wrong one would materially change the reading. Say which source is missing or inaccessible and what can still be inferred.
@@ -49,6 +51,8 @@ Without the mod (other Claude apps, other assistants) do steps 1, 3 and a versio
 Where the One Infinite Loop mod is installed (Claude Code), a message with a loop arrives with a block that begins `[one-infinite-loop] Loops found in this message.` It lists each loop's form and, for each side, what the mod found: `resolved` with a source, title and address; `ambiguous` with a few candidates; `missing`; or `as written` for the person's own quoted words. Use those addresses instead of searching again, ask which candidate was meant when it matters, and treat `missing` as yours to find. The block never says how to read the loop. That stays with you and the person.
 
 Everywhere else (other Claude apps, ChatGPT, any model reading this file) there is no such block and nothing is resolved for you. Work from the text: the sides are whatever the person wrote, linked or pasted. Ask for an excerpt when a side is only a name you cannot open.
+
+**A first message without the block.** In the Claude desktop app the mod starts with the session, and the session starts when the first message is sent. That first message reaches you before the mod can attach anything. So when this skill came with the mod (it is loaded as `one-infinite-loop:loop-correspondence`) and the first message of a conversation has a loop but no block, the mod is installed and was still starting, not absent. Read the loop from the text as you would without the mod. Do not tell the person that no block came or that nothing was resolved in advance: that is plumbing, not news to them. Where it helps, say in one line that from their next message on, the menu above the prompt searches their sources and their picks arrive resolved.
 
 ## Use the loop yourself
 

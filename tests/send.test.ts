@@ -328,6 +328,98 @@ test('a source that answers with nothing still says nothing found, without the s
   const ui = await $.ui.mount(ABOVE)
   expect(await ui.find({ type: 'Text', text: /nothing found/ })).toBeDefined()
   expect(await ui.find({ type: 'Text', text: /no source is set up/ })).toBeUndefined()
+  expect(await ui.find({ type: 'Button', text: /use your words as written/ })).toBeDefined()
+  await ui.unmount()
+})
+
+// The menu with Scuba and Notion connected and no vault folder set.
+const connected = (on: Parameters<typeof world>[0]) => {
+  const clock = mock.clock(on)
+  const fills: string[] = []
+  on('tool.list', () => ({
+    value: ['notion-search', 'create_url_capture'].map(tool => ({
+      name: `mcp__srv-${tool}__${tool}`,
+      description: '',
+      mcp: true,
+    })),
+  }))
+  on('mcp.call', (_: unknown, e: { tool: string }) =>
+    text(e.tool === 'notion-search' ? NOTION : SCUBA),
+  )
+  on('fs.list', () => ({ value: [] }))
+  on('prompt.fill', (_: unknown, e: { text: string; cursor?: number }) => {
+    fills.push(e.text)
+
+    return { isFilled: true, text: e.text, cursor: e.cursor ?? e.text.length }
+  })
+
+  return { clock, fills }
+}
+
+test('the menu names each source in a pill with what it found, and leaves out one not set up', async ($, on) => {
+  mock.store(on)
+  const { clock } = connected(on)
+  await typeLoop($, on, '⌘river')
+  await clock.advance(400)
+  const ui = await $.ui.mount(ABOVE)
+  expect(await ui.find({ type: 'Text', text: /^ notion 2 $/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^ scuba \d+ $/ })).toBeDefined()
+  // No vault folder is set: Obsidian stays quiet, as the README says.
+  expect(await ui.find({ type: 'Text', text: /not reached/ })).toBeUndefined()
+  // A row: the title plain, its source in a pill.
+  expect(await ui.find({ type: 'Text', text: /^ notion $/ })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: /^Found$/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a source that is set up but does not answer in time is named', async ($, on) => {
+  mock.store(on)
+  const clock = mock.clock(on)
+  on('tool.list', () => ({
+    value: [{ name: 'mcp__srv__create_url_capture', description: '', mcp: true }],
+  }))
+  on('mcp.call', () => new Promise(() => {}))
+  on('fs.list', () => ({ value: [] }))
+  await typeLoop($, on, '⌘scuba:river')
+  await clock.advance(4400)
+  const ui = await $.ui.mount(ABOVE)
+  expect(await ui.find({ type: 'Text', text: /not reached/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('on a narrow band a long title is cut before its source pill', async ($, on) => {
+  mock.store(on)
+  const { clock } = connected(on)
+  await typeLoop($, on, '⌘notion:field')
+  await clock.advance(400)
+  const ui = await $.ui.mount({ ...ABOVE, props: { ...ABOVE.props, bodyColumns: 40 } })
+  const row = await ui.find({ key: 'loop-0' })
+  expect(row?.text).toMatch(/^Field notes on rivers.*…/)
+  expect(row?.text).toMatch(/ notion $/)
+  await ui.unmount()
+})
+
+test('results beyond the band\'s rows are counted, not drawn', async ($, on) => {
+  mock.store(on)
+  const { clock } = connected(on)
+  await typeLoop($, on, '⌘river')
+  await clock.advance(400)
+  const ui = await $.ui.mount({ ...ABOVE, props: { ...ABOVE.props, maxRows: 6 } })
+  expect(await ui.find({ type: 'Text', text: /more · keep typing to narrow/ })).toBeDefined()
+  expect(await ui.find({ key: 'loop-4' })).toBeUndefined()
+  await ui.unmount()
+})
+
+test('a source pill keeps the words typed, and all sources undoes the narrowing', async ($, on) => {
+  mock.store(on)
+  const { clock, fills } = connected(on)
+  await typeLoop($, on, '⌘scuba:egret')
+  await clock.advance(400)
+  const ui = await $.ui.mount(ABOVE)
+  await ui.press({ key: 'src-notion' })
+  expect(fills.at(-1)).toBe('⌘notion:egret')
+  await ui.press({ key: 'src-all' })
+  expect(fills.at(-1)).toBe('⌘egret')
   await ui.unmount()
 })
 
