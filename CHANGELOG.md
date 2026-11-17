@@ -4,7 +4,7 @@ Versions published to the GitHub marketplace and to the THARP organization libra
 
 ## 0.9.0, 17 November 2026
 
-- A new icon from the One Infinite Loop page on tharp.science: the ink loop mark on the page's rainbow, in place of the THARP² lettering, which did not read as the loop at small sizes. Its source is `extras/icon/icon.svg`.
+- A new icon from the One Infinite Loop page on tharp.science: the loop mark on the hero's plasma, in place of the THARP² lettering, which did not read as the loop at small sizes. Its source is `extras/icon/icon.svg`.
 - The menu above the prompt, redrawn. Each source is a pill of its own colour, in the rows, in the head and on one line of source pills, so a source never reads as part of a title. Where a surface draws no background behind text, the pill is its source's colour in bold.
 - The head repeats what you typed and says, per source, how many it found, which it is still asking, and which it could not reach. Each source's rows appear as soon as it answers, not after the slowest.
 - Fragments picked before have their own section and the coloured ⌘; results show their kind and path or summary.
