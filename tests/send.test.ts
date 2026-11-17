@@ -393,9 +393,24 @@ test('on a narrow band a long title is cut before its source pill', async ($, on
   await typeLoop($, on, '⌘notion:field')
   await clock.advance(400)
   const ui = await $.ui.mount({ ...ABOVE, props: { ...ABOVE.props, bodyColumns: 40 } })
-  const row = await ui.find({ key: 'loop-0' })
-  expect(row?.text).toMatch(/^Field notes on rivers.*…/)
+  const row = await ui.find({ key: 'row-0' })
+  expect(row?.text).toMatch(/Field notes on rivers.*…/)
   expect(row?.text).toMatch(/ notion $/)
+  // The pill sits beside the pressed words, not inside them: a desktop
+  // drops the colours of what a Button holds.
+  expect((await ui.find({ key: 'loop-0' }))?.text).not.toMatch(/notion/)
+  expect(await ui.find({ type: 'Text', text: /^ notion $/ })).toBeDefined()
+  await ui.unmount()
+})
+
+test('a found row is one button with its detail, and its source pill comes last', async ($, on) => {
+  mock.store(on)
+  const { clock } = connected(on)
+  await typeLoop($, on, '⌘notion:field')
+  await clock.advance(400)
+  const ui = await $.ui.mount(ABOVE)
+  expect((await ui.find({ key: 'row-0' }))?.text).toMatch(/^Field notes on rivers.*Docs.* notion $/)
+  expect((await ui.find({ key: 'loop-0' }))?.text).toMatch(/Docs/)
   await ui.unmount()
 })
 
