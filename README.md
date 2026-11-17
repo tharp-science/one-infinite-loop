@@ -148,4 +148,4 @@ The looped square is one line with no end, and it has sat on a certain keyboard 
 
 ## Licence
 
-MIT, see `LICENSE`. Copyright Thyke Applied Research & Participatory Prototyping (THARP). The lettered mark used as the icon is a mark of THARP and is not covered by the MIT licence.
+MIT, see `LICENSE`. Copyright Thyke Applied Research & Participatory Prototyping (THARP). The loop mark used in the icon is a mark of THARP and is not covered by the MIT licence.
